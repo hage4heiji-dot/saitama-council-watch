@@ -1,0 +1,69 @@
+# docs/design/01-basic-design.md §9, docs/adr/0003, docs/adr/0008
+# 実行例: docker compose -f infra/docker/compose.yml --env-file ../../.env up -d
+# ビルドコンテキストはリポジトリルート(このファイルからの相対パス ../..)。
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_webroot:/var/www/certbot:ro
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/server.js"]
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../data/raw:/data/raw
+      - ../../data/sqlite:/data/sqlite
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "dist/batch/runner.js"]
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../data/raw:/data/raw
+      - ../../data/sqlite:/data/sqlite
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-saitama_council_watch}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  certbot_certs:
+  certbot_webroot:

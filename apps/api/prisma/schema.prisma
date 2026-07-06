@@ -1,0 +1,272 @@
+// さいたま市議会ウォッチ - PostgreSQLスキーマ
+// 設計根拠: docs/design/01-basic-design.md §3.1, docs/adr/0006-ai-content-storage-split.md
+//
+// 原則:
+//   - documents は追記専用(immutable)。原本更新時は version をインクリメントして新規行を追加する。
+//   - ai_contents.sourceDocumentId は必須(NOT NULL)。原本のないAI生成コンテンツを
+//     DB制約レベルで禁止する(「AIは事実を創作してはいけない」docs/design/00-constitution.md)。
+//   - SQLite側(embedding/FTS/LLM応答キャッシュ)はこのPrismaスキーマの対象外。
+//     apps/api/src/infrastructure/db/sqlite を参照。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MeetingType {
+  PLENARY // 本会議
+  COMMITTEE // 委員会
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  HELD
+  CANCELLED
+}
+
+enum BillStatus {
+  SUBMITTED
+  IN_DELIBERATION
+  PASSED
+  REJECTED
+  CARRIED_OVER // 継続審議
+}
+
+enum OrdinanceStatus {
+  IN_FORCE
+  ABOLISHED
+}
+
+enum VoteType {
+  FOR
+  AGAINST
+  ABSENT
+  ABSTAIN
+}
+
+enum DocumentType {
+  PDF
+  HTML
+  MARKDOWN
+  JSON
+}
+
+enum AiContentType {
+  SUMMARY
+  TAGS
+  FAQ
+  RELATED_INFO
+}
+
+enum NotificationChannel {
+  EMAIL
+  LINE
+  PUSH
+}
+
+enum BatchJobStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model Faction {
+  id          String   @id @default(uuid())
+  name        String
+  foundedDate DateTime? @map("founded_date") @db.Date
+  isActive    Boolean  @default(true) @map("is_active")
+
+  legislatorHistory LegislatorFactionHistory[]
+
+  @@map("factions")
+}
+
+model Legislator {
+  id                String    @id @default(uuid())
+  name              String
+  nameKana          String    @map("name_kana")
+  firstElectedDate  DateTime? @map("first_elected_date") @db.Date
+  isActive          Boolean   @default(true) @map("is_active")
+  profileUrl        String?   @map("profile_url")
+
+  factionHistory LegislatorFactionHistory[]
+  votes          Vote[]
+
+  @@map("legislators")
+}
+
+// 会派移動の履歴。現在の会派は valid_to が null の行。
+model LegislatorFactionHistory {
+  id           String    @id @default(uuid())
+  legislatorId String    @map("legislator_id")
+  factionId    String    @map("faction_id")
+  validFrom    DateTime  @map("valid_from") @db.Date
+  validTo      DateTime? @map("valid_to") @db.Date
+
+  legislator Legislator @relation(fields: [legislatorId], references: [id])
+  faction    Faction    @relation(fields: [factionId], references: [id])
+
+  @@index([legislatorId])
+  @@map("legislator_faction_history")
+}
+
+model Meeting {
+  id          String        @id @default(uuid())
+  name        String
+  meetingType MeetingType   @map("meeting_type")
+  sessionName String        @map("session_name")
+  date        DateTime      @db.Date
+  status      MeetingStatus @default(SCHEDULED)
+
+  bills Bill[]
+
+  @@map("meetings")
+}
+
+model Bill {
+  id               String     @id @default(uuid())
+  meetingId        String     @map("meeting_id")
+  billNumber       String     @map("bill_number")
+  title            String
+  category         String
+  submittedDate    DateTime   @map("submitted_date") @db.Date
+  status           BillStatus @default(SUBMITTED)
+  sourceDocumentId String     @map("source_document_id")
+
+  meeting        Meeting    @relation(fields: [meetingId], references: [id])
+  sourceDocument Document   @relation(fields: [sourceDocumentId], references: [id])
+  votes          Vote[]
+  ordinances     Ordinance[]
+  budgets        Budget[]
+
+  @@unique([meetingId, billNumber])
+  @@index([sourceDocumentId])
+  @@map("bills")
+}
+
+model Ordinance {
+  id               String          @id @default(uuid())
+  title            String
+  enactedDate      DateTime        @map("enacted_date") @db.Date
+  billId           String?         @map("bill_id")
+  status           OrdinanceStatus @default(IN_FORCE)
+  sourceDocumentId String          @map("source_document_id")
+
+  bill           Bill?    @relation(fields: [billId], references: [id])
+  sourceDocument Document @relation(fields: [sourceDocumentId], references: [id])
+
+  @@index([sourceDocumentId])
+  @@map("ordinances")
+}
+
+model Vote {
+  id           String   @id @default(uuid())
+  billId       String   @map("bill_id")
+  legislatorId String   @map("legislator_id")
+  voteType     VoteType @map("vote_type")
+  votedAt      DateTime @map("voted_at")
+
+  bill       Bill       @relation(fields: [billId], references: [id])
+  legislator Legislator @relation(fields: [legislatorId], references: [id])
+
+  @@unique([billId, legislatorId])
+  @@map("votes")
+}
+
+model Budget {
+  id            String  @id @default(uuid())
+  fiscalYear    Int     @map("fiscal_year")
+  category      String
+  amount        Decimal @db.Decimal(14, 0)
+  relatedBillId String? @map("related_bill_id")
+  description   String
+
+  relatedBill Bill? @relation(fields: [relatedBillId], references: [id])
+
+  @@index([fiscalYear])
+  @@map("budgets")
+}
+
+// 原本管理: 追記専用。改変・削除しない。
+model Document {
+  id          String       @id @default(uuid())
+  type        DocumentType
+  sourceUrl   String       @map("source_url")
+  storagePath String       @map("storage_path")
+  checksum    String // sha256 hex
+  version     Int          @default(1)
+  fetchedAt   DateTime     @map("fetched_at")
+
+  bills       Bill[]
+  ordinances  Ordinance[]
+  aiContents  AiContent[]
+
+  @@unique([sourceUrl, version])
+  @@index([checksum])
+  @@map("documents")
+}
+
+// 公開用AI生成コンテンツ。docs/adr/0006, 0007 参照。
+model AiContent {
+  id               String        @id @default(uuid())
+  sourceDocumentId String        @map("source_document_id")
+  contentType      AiContentType @map("content_type")
+  body             String
+  modelVersion     String        @map("model_version")
+  promptVersion    String        @map("prompt_version")
+  generatedAt      DateTime      @map("generated_at")
+  isVerified       Boolean       @default(false) @map("is_verified")
+  verifiedBy       String?       @map("verified_by")
+  verifiedAt       DateTime?     @map("verified_at")
+
+  sourceDocument Document @relation(fields: [sourceDocumentId], references: [id])
+
+  @@index([sourceDocumentId])
+  @@index([isVerified])
+  @@map("ai_contents")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  oauthProvider  String   @map("oauth_provider")
+  oauthSubjectId String   @map("oauth_subject_id")
+  email          String   @unique
+  displayName    String   @map("display_name")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  notificationSettings NotificationSetting[]
+
+  @@unique([oauthProvider, oauthSubjectId])
+  @@map("users")
+}
+
+model NotificationSetting {
+  id          String              @id @default(uuid())
+  userId      String              @map("user_id")
+  channel     NotificationChannel
+  topicFilter Json                @map("topic_filter")
+  isEnabled   Boolean             @default(true) @map("is_enabled")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, channel])
+  @@map("notification_settings")
+}
+
+// バッチジョブ実行履歴。ソロ運用における唯一の観測手段(docs/design/01-basic-design.md §7)。
+model BatchJobRun {
+  id               String          @id @default(uuid())
+  jobName          String          @map("job_name")
+  startedAt        DateTime        @map("started_at")
+  finishedAt       DateTime?        @map("finished_at")
+  status           BatchJobStatus  @default(RUNNING)
+  errorMessage     String?         @map("error_message")
+  recordsProcessed Int             @default(0) @map("records_processed")
+
+  @@index([jobName, startedAt])
+  @@map("batch_job_runs")
+}
