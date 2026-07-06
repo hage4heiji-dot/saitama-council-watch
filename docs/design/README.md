@@ -19,5 +19,6 @@
 | [0007](../adr/0007-ai-human-review-gate.md) | AI生成コンテンツの公開前に人手確認ゲートを設ける |
 | [0008](../adr/0008-worker-container-separation.md) | バッチ/AI処理をworkerコンテナとしてAPIから分離 |
 | [0009](../adr/0009-non-root-deploy-user.md) | 非rootの専用デプロイユーザーでプロジェクトを配置・運用する |
+| [0010](../adr/0010-nullable-session-and-bill-dates.md) | Meeting.dateとBill.submittedDateをnullableにする |
 
-新しいADRを追加する場合は連番(0009〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
+新しいADRを追加する場合は連番(0011〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
