@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "start:worker": "node dist/batch/runner.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts",
@@ -40,6 +41,7 @@
     "@types/pdf-parse": "^1.1.4",
     "prisma": "^5.20.0",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
   }
 }

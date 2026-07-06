@@ -2,6 +2,7 @@ import type {
   AiContentReviewItem,
   Bill,
   BillDetail,
+  BillStatus,
   BillWithSource,
   Legislator,
   Meeting,
@@ -33,11 +34,14 @@ export function fetchMeeting(id: string): Promise<Meeting | null> {
 }
 
 export function fetchBills(
-  params: { meetingId?: string; limit?: number } = {},
+  params: { meetingId?: string; status?: BillStatus | undefined; limit?: number } = {},
 ): Promise<{ items: BillWithSource[]; nextCursor: string | null }> {
   const qs = new URLSearchParams();
   if (params.meetingId) {
     qs.set("meetingId", params.meetingId);
+  }
+  if (params.status) {
+    qs.set("status", params.status);
   }
   qs.set("limit", String(params.limit ?? 50));
   return apiFetch(`/bills?${qs.toString()}`);
