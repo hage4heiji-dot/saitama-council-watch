@@ -9,6 +9,11 @@ import pdfParse from "pdf-parse";
 export async function extractPdfText(rawStorageRoot: string, storagePath: string): Promise<string> {
   const absolutePath = resolve(rawStorageRoot, storagePath);
   const buffer = await readFile(absolutePath);
+  return extractPdfTextFromBuffer(buffer);
+}
+
+/** ディスク保存前のバッファから直接テキストを抽出する版(docs/adr/0016 審議結果同期) */
+export async function extractPdfTextFromBuffer(buffer: Buffer): Promise<string> {
   const parsed = await pdfParse(buffer);
   return parsed.text.trim();
 }

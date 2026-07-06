@@ -9,6 +9,16 @@ const PRISMA_TO_SHARED_STATUS: Record<PrismaBillStatus, BillStatus> = {
   PASSED: "passed",
   REJECTED: "rejected",
   CARRIED_OVER: "carried_over",
+  UNCONFIRMED: "unconfirmed",
+};
+
+const SHARED_TO_PRISMA_STATUS: Record<BillStatus, PrismaBillStatus> = {
+  submitted: "SUBMITTED",
+  in_deliberation: "IN_DELIBERATION",
+  passed: "PASSED",
+  rejected: "REJECTED",
+  carried_over: "CARRIED_OVER",
+  unconfirmed: "UNCONFIRMED",
 };
 
 function toDomain(row: PrismaBill): Bill {
@@ -90,5 +100,24 @@ export class PrismaBillRepository implements BillRepository {
   async findBySourceDocumentId(sourceDocumentId: string): Promise<Bill | null> {
     const row = await this.client.bill.findFirst({ where: { sourceDocumentId } });
     return row ? toDomain(row) : null;
+  }
+
+  async findAllByMeetingId(meetingId: string): Promise<Bill[]> {
+    const rows = await this.client.bill.findMany({ where: { meetingId }, orderBy: { billNumber: "asc" } });
+    return rows.map(toDomain);
+  }
+
+  async updateStatus(id: string, status: BillStatus): Promise<Bill | null> {
+    // 対象が存在しない場合にPrismaが「レコードが見つからない」エラーをログ出力しないよう、
+    // 事前にfindUniqueで存在確認する(PrismaMeetingRepository.updateSessionPeriodと同じ方針)。
+    const existing = await this.client.bill.findUnique({ where: { id } });
+    if (!existing) {
+      return null;
+    }
+    const row = await this.client.bill.update({
+      where: { id },
+      data: { status: SHARED_TO_PRISMA_STATUS[status] },
+    });
+    return toDomain(row);
   }
 }

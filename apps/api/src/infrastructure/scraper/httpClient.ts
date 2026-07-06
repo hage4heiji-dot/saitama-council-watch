@@ -38,3 +38,44 @@ export async function politeFetch(url: string): Promise<FetchedResource> {
     contentType: response.headers.get("content-type"),
   };
 }
+
+export interface FormPostResult extends FetchedResource {
+  /** レスポンスのSet-Cookie(次リクエストへそのまま引き継ぐ用、単純な単一Cookie転送) */
+  setCookie: string | null;
+}
+
+/**
+ * フォームPOST(x-www-form-urlencoded)+Cookie転送に対応した版。
+ * さいたま市議会資料検索システム(Discuss Cabinet)のようなセッション・フォーム遷移型の
+ * サイトに対応するため(docs/adr/0016-bill-deliberation-status-sync.md)。
+ */
+export async function politePostForm(
+  url: string,
+  fields: Record<string, string>,
+  cookie: string | null,
+): Promise<FormPostResult> {
+  await waitForPoliteInterval();
+  lastRequestAt = Date.now();
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": env.SCRAPER_USER_AGENT,
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
+    body: new URLSearchParams(fields).toString(),
+  });
+
+  if (!response.ok) {
+    throw new Error(`スクレイピング先の応答がエラーでした: ${response.status} ${url}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const setCookieHeader = response.headers.get("set-cookie");
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    contentType: response.headers.get("content-type"),
+    setCookie: setCookieHeader ? (setCookieHeader.split(";")[0] ?? null) : null,
+  };
+}

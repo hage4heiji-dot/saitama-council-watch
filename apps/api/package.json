@@ -15,6 +15,7 @@
     "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts",
     "scrape:schedule": "tsx --env-file=.env src/batch/jobs/scrapeSessionSchedule.ts",
     "scrape:legislators": "tsx --env-file=.env src/batch/jobs/scrapeLegislators.ts",
+    "sync:bill-status": "tsx --env-file=.env src/batch/jobs/syncBillDeliberationResults.ts",
     "generate:ai-content": "tsx --env-file=.env src/batch/jobs/generateAiContent.ts"
   },
   "dependencies": {

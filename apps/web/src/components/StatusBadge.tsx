@@ -10,6 +10,7 @@ const STATUS_CONFIG: Record<BillStatus, { label: string; colorVar: string }> = {
   passed: { label: "可決", colorVar: "var(--status-good)" },
   rejected: { label: "否決", colorVar: "var(--status-critical)" },
   carried_over: { label: "継続審議", colorVar: "var(--status-serious)" },
+  unconfirmed: { label: "詳細要確認", colorVar: "var(--text-muted)" },
 };
 
 export function StatusBadge({ status }: { status: BillStatus }) {
