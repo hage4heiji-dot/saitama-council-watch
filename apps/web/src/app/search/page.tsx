@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { searchBills } from "@/lib/apiClient";
 import { HighlightedSnippet } from "@/components/HighlightedSnippet";
 
@@ -36,9 +37,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <ul className="divide-y divide-gray-200">
             {response.results.map((result) => (
               <li key={result.bill.id} className="py-3">
-                <div className="font-medium">
+                <Link href={`/bills/${result.bill.id}`} className="font-medium hover:underline">
                   {result.bill.billNumber} {result.bill.title}
-                </div>
+                </Link>
                 <div className="mt-1 text-sm text-gray-600">
                   <HighlightedSnippet snippet={result.snippet} />
                 </div>

@@ -21,6 +21,9 @@ const EnvSchema = z.object({
   SCRAPER_REQUEST_DELAY_MS: z.coerce.number().int().nonnegative().default(1500),
   SCRAPE_BILLS_SESSION_LIMIT: z.coerce.number().int().positive().default(1),
   SCRAPE_SCHEDULE_SESSION_LIMIT: z.coerce.number().int().positive().default(3),
+  GENERATE_AI_CONTENT_LIMIT: z.coerce.number().int().positive().default(5),
+  // Phase4でOAuthベースの管理者認証に置き換えるまでの仮保護(docs/adr/0013)
+  ADMIN_API_TOKEN: z.string().min(1, "ADMIN_API_TOKEN is required"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

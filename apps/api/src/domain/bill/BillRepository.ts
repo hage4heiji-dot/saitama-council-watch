@@ -18,4 +18,7 @@ export interface BillRepository {
   upsertByMeetingAndNumber(input: UpsertBillInput): Promise<Bill>;
   findPage(query: PageQuery & { meetingId?: string | undefined }): Promise<Page<Bill>>;
   findManyByIds(ids: string[]): Promise<Bill[]>;
+  /** まだAI生成コンテンツが1件も作られていない議案を取得する(Phase3) */
+  findWithoutAiContent(limit: number): Promise<Bill[]>;
+  findBySourceDocumentId(sourceDocumentId: string): Promise<Bill | null>;
 }

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { fetchBills, fetchMeeting } from "@/lib/apiClient";
 
 interface MeetingPageProps {
@@ -28,9 +29,9 @@ export default async function MeetingDetailPage({ params }: MeetingPageProps) {
       <ul className="divide-y divide-gray-200">
         {bills.map((bill) => (
           <li key={bill.id} className="py-3">
-            <div className="font-medium">
+            <Link href={`/bills/${bill.id}`} className="font-medium hover:underline">
               {bill.billNumber} {bill.title}
-            </div>
+            </Link>
             <div className="mt-1 flex gap-3 text-sm text-gray-500">
               <span>{bill.submittedDate ? `提出日: ${bill.submittedDate}` : "提出日: 未取得"}</span>
               <a

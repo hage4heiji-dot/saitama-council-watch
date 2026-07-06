@@ -3,6 +3,7 @@ import express, { type Express, Router } from "express";
 import helmet from "helmet";
 import { env } from "../../config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { adminAiContentsRouter } from "./routes/adminAiContents.js";
 import { billsRouter } from "./routes/bills.js";
 import { healthRouter } from "./routes/health.js";
 import { legislatorsRouter } from "./routes/legislators.js";
@@ -11,8 +12,8 @@ import { searchRouter } from "./routes/search.js";
 
 /**
  * publicなAPIエントリポイント。/api/v1配下に公開読み取り系を実装(Phase2〜)。
- * 認証必須系(/me等)・内部系(/internal, /admin)は別routerとして追加し、
- * ここではまだ配線しない(docs/design/01-basic-design.md §4)。
+ * /internal配下は管理トークン保護(Phase3、docs/adr/0013)。
+ * 認証必須系(/me等、Phase4)はまだ配線しない(docs/design/01-basic-design.md §4)。
  */
 export function createApp(): Express {
   const app = express();
@@ -29,6 +30,8 @@ export function createApp(): Express {
   v1Router.use(billsRouter);
   v1Router.use(searchRouter);
   app.use("/api/v1", v1Router);
+
+  app.use(adminAiContentsRouter);
 
   app.use(errorHandler);
 

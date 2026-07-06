@@ -232,6 +232,9 @@ model AiContent {
   isVerified       Boolean       @default(false) @map("is_verified")
   verifiedBy       String?       @map("verified_by")
   verifiedAt       DateTime?     @map("verified_at")
+  // グラウンディング検証(機械的チェック・自己検証パス)で問題が見つかった場合のみ設定。
+  // 管理確認画面(docs/adr/0007)でレビュー担当者が理由を確認できるようにする。
+  groundingNote    String?       @map("grounding_note")
 
   sourceDocument Document @relation(fields: [sourceDocumentId], references: [id])
 
