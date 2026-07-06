@@ -1,7 +1,9 @@
 import { BillListQuerySchema } from "@saitama-council-watch/shared-types";
 import { Router } from "express";
-import { attachSourceUrl, attachSourceUrlToMany } from "../../../application/bills/attachSourceUrl.js";
+import { attachSourceUrlToMany } from "../../../application/bills/attachSourceUrl.js";
+import { buildBillDetail } from "../../../application/bills/buildBillDetail.js";
 import { prisma } from "../../../infrastructure/db/postgres/prismaClient.js";
+import { PrismaAiContentRepository } from "../../../infrastructure/db/postgres/repositories/PrismaAiContentRepository.js";
 import { PrismaBillRepository } from "../../../infrastructure/db/postgres/repositories/PrismaBillRepository.js";
 import { PrismaDocumentRepository } from "../../../infrastructure/db/postgres/repositories/PrismaDocumentRepository.js";
 import { HttpError } from "../middleware/errorHandler.js";
@@ -9,6 +11,7 @@ import { HttpError } from "../middleware/errorHandler.js";
 export const billsRouter = Router();
 const billRepository = new PrismaBillRepository(prisma);
 const documentRepository = new PrismaDocumentRepository(prisma);
+const aiContentRepository = new PrismaAiContentRepository(prisma);
 
 billsRouter.get("/bills", async (req, res, next) => {
   try {
@@ -27,8 +30,8 @@ billsRouter.get("/bills/:id", async (req, res, next) => {
     if (!bill) {
       throw new HttpError(404, "Bill not found");
     }
-    const withSource = await attachSourceUrl(bill, documentRepository);
-    res.json(withSource);
+    const detail = await buildBillDetail(bill, documentRepository, aiContentRepository);
+    res.json(detail);
   } catch (error) {
     next(error);
   }

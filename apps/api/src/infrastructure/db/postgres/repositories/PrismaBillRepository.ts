@@ -77,4 +77,18 @@ export class PrismaBillRepository implements BillRepository {
     const rows = await this.client.bill.findMany({ where: { id: { in: ids } } });
     return rows.map(toDomain);
   }
+
+  async findWithoutAiContent(limit: number): Promise<Bill[]> {
+    const rows = await this.client.bill.findMany({
+      where: { sourceDocument: { aiContents: { none: {} } } },
+      orderBy: { id: "desc" },
+      take: limit,
+    });
+    return rows.map(toDomain);
+  }
+
+  async findBySourceDocumentId(sourceDocumentId: string): Promise<Bill | null> {
+    const row = await this.client.bill.findFirst({ where: { sourceDocumentId } });
+    return row ? toDomain(row) : null;
+  }
 }

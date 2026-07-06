@@ -36,6 +36,22 @@ export const BillListQuerySchema = CursorPageQuerySchema.extend({
 });
 export type BillListQuery = z.infer<typeof BillListQuerySchema>;
 
+const FaqItemSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+});
+
+/**
+ * 議案詳細向けDTO(Phase3)。承認済み(is_verified=true)のAIコンテンツのみを含める
+ * (docs/adr/0007-ai-human-review-gate.md)。未承認の場合はnull/空配列。
+ */
+export const BillDetailSchema = BillWithSourceSchema.extend({
+  aiSummary: z.string().nullable(),
+  aiTags: z.array(z.string()),
+  aiFaq: z.array(FaqItemSchema),
+});
+export type BillDetail = z.infer<typeof BillDetailSchema>;
+
 export const OrdinanceStatusSchema = z.enum(["in_force", "abolished"]);
 export type OrdinanceStatus = z.infer<typeof OrdinanceStatusSchema>;
 
