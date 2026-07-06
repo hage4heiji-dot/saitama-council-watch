@@ -12,7 +12,7 @@ export const MeetingSchema = z.object({
   name: z.string().min(1),
   meetingType: MeetingTypeSchema,
   sessionName: z.string().min(1), // 定例会/臨時会などの括り
-  date: IsoDateSchema,
+  date: IsoDateSchema.nullable(), // 会期全体の単一開催日は未確定のためnullable
   status: MeetingStatusSchema,
 });
 export type Meeting = z.infer<typeof MeetingSchema>;

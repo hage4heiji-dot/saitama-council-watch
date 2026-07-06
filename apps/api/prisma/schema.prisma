@@ -119,11 +119,14 @@ model Meeting {
   name        String
   meetingType MeetingType   @map("meeting_type")
   sessionName String        @map("session_name")
-  date        DateTime      @db.Date
+  // 定例会・臨時会単位では会期中の特定の開催日が一意に定まらないためnullable。
+  // 個別の本会議・委員会の開催日は将来の会議日程スクレイピング(Phase1b)で補完する。
+  date        DateTime?     @db.Date
   status      MeetingStatus @default(SCHEDULED)
 
   bills Bill[]
 
+  @@unique([sessionName, meetingType])
   @@map("meetings")
 }
 
@@ -133,7 +136,9 @@ model Bill {
   billNumber       String     @map("bill_number")
   title            String
   category         String
-  submittedDate    DateTime   @map("submitted_date") @db.Date
+  // 原本ページの見出しから解析できた場合のみ設定する。解析できない書式のページも
+  // あるため、値を捏造しないようnullableにする(docs/design/00-constitution.md)。
+  submittedDate    DateTime?  @map("submitted_date") @db.Date
   status           BillStatus @default(SUBMITTED)
   sourceDocumentId String     @map("source_document_id")
 

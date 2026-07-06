@@ -9,8 +9,17 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   SQLITE_PATH: z.string().min(1).default("../../data/sqlite/ai-cache.db"),
+  RAW_STORAGE_PATH: z.string().min(1).default("../../data/raw"),
   CLAUDE_API_KEY: z.string().min(1, "CLAUDE_API_KEY is required"),
   CORS_ORIGIN: z.string().min(1).default("http://localhost:3000"),
+  SCRAPER_USER_AGENT: z
+    .string()
+    .min(1)
+    .default(
+      "Mozilla/5.0 (compatible; SaitamaCouncilWatchBot/0.1; +https://github.com/hage4heiji-dot/saitama-council-watch)",
+    ),
+  SCRAPER_REQUEST_DELAY_MS: z.coerce.number().int().nonnegative().default(1500),
+  SCRAPE_BILLS_SESSION_LIMIT: z.coerce.number().int().positive().default(1),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

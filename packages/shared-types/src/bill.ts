@@ -16,7 +16,7 @@ export const BillSchema = z.object({
   billNumber: z.string().min(1),
   title: z.string().min(1),
   category: z.string().min(1),
-  submittedDate: IsoDateSchema,
+  submittedDate: IsoDateSchema.nullable(), // 原本から解析できた場合のみ設定
   status: BillStatusSchema,
   sourceDocumentId: z.string().uuid(),
 });

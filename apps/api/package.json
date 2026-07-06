@@ -11,13 +11,15 @@
     "start:worker": "node dist/batch/runner.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
     "@prisma/client": "^5.20.0",
     "@saitama-council-watch/shared-types": "*",
     "better-sqlite3": "^11.3.0",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "helmet": "^7.1.0",
