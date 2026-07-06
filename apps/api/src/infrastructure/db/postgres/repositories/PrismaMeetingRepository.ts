@@ -5,6 +5,7 @@ import type {
   SessionPeriod,
   UpsertMeetingInput,
 } from "../../../../domain/meeting/MeetingRepository.js";
+import type { Page, PageQuery } from "../../../../domain/shared/Page.js";
 
 const PRISMA_TO_SHARED_TYPE: Record<PrismaMeetingType, MeetingType> = {
   PLENARY: "plenary",
@@ -80,5 +81,26 @@ export class PrismaMeetingRepository implements MeetingRepository {
       },
     });
     return toDomain(row);
+  }
+
+  async findPage(query: PageQuery): Promise<Page<Meeting>> {
+    const rows = await this.client.meeting.findMany({
+      orderBy: { id: "desc" },
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = rows.length > query.limit;
+    const items = hasMore ? rows.slice(0, query.limit) : rows;
+    const lastItem = items[items.length - 1];
+    return {
+      items: items.map(toDomain),
+      nextCursor: hasMore && lastItem ? lastItem.id : null,
+    };
+  }
+
+  async findById(id: string): Promise<Meeting | null> {
+    const row = await this.client.meeting.findUnique({ where: { id } });
+    return row ? toDomain(row) : null;
   }
 }

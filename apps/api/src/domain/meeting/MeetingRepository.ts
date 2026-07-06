@@ -1,4 +1,5 @@
 import type { Meeting, MeetingType } from "@saitama-council-watch/shared-types";
+import type { Page, PageQuery } from "../shared/Page.js";
 
 /**
  * ポート(interface)。実装はinfrastructure/db/postgres/repositories配下に置く
@@ -23,4 +24,6 @@ export interface MeetingRepository {
     meetingType: MeetingType,
     period: SessionPeriod,
   ): Promise<Meeting | null>;
+  findPage(query: PageQuery): Promise<Page<Meeting>>;
+  findById(id: string): Promise<Meeting | null>;
 }

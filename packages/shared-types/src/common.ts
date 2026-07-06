@@ -10,7 +10,8 @@ export const IsoDateSchema = z.string().date();
 
 export const CursorPageQuerySchema = z.object({
   cursor: z.string().optional(),
-  limit: z.number().int().min(1).max(100).default(20),
+  // z.coerceによりExpressのクエリ文字列("20")とオブジェクト渡し(20)の両方を受け付ける
+  limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type CursorPageQuery = z.infer<typeof CursorPageQuerySchema>;
 

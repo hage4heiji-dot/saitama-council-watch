@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { scrapeBillsJob } from "./jobs/scrapeBills.js";
+import { scrapeLegislatorsJob } from "./jobs/scrapeLegislators.js";
 import { scrapeSessionScheduleJob } from "./jobs/scrapeSessionSchedule.js";
 import { runJob } from "./runJob.js";
 import { disconnectPrisma } from "../infrastructure/db/postgres/prismaClient.js";
@@ -27,6 +28,11 @@ cron.schedule("0 18 * * *", () => {
 // 会期予定表の取り込み(Phase1b)。議案スクレイピングの後に実行し、Meeting行を更新する。
 cron.schedule("30 18 * * *", () => {
   void runJob("scrape-session-schedule", scrapeSessionScheduleJob);
+});
+
+// 議員・会派の取り込み(Phase2)。更新頻度は低いため1日1回で十分。
+cron.schedule("0 19 * * *", () => {
+  void runJob("scrape-legislators", scrapeLegislatorsJob);
 });
 
 // eslint-disable-next-line no-console

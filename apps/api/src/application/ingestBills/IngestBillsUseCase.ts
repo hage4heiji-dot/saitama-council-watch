@@ -1,6 +1,7 @@
 import type { BillRepository } from "../../domain/bill/BillRepository.js";
 import type { DocumentRepository } from "../../domain/document/DocumentRepository.js";
 import type { MeetingRepository } from "../../domain/meeting/MeetingRepository.js";
+import type { SearchRepository } from "../../domain/search/SearchRepository.js";
 import { politeFetch } from "../../infrastructure/scraper/httpClient.js";
 import { fetchSessionBills, listSessionLinks } from "../../infrastructure/scraper/saitamaBillsScraper.js";
 import { saveRawDocument } from "../../infrastructure/storage/RawDocumentStorage.js";
@@ -9,6 +10,7 @@ export interface IngestBillsDeps {
   documentRepository: DocumentRepository;
   meetingRepository: MeetingRepository;
   billRepository: BillRepository;
+  searchRepository: SearchRepository;
   rawStorageRoot: string;
 }
 
@@ -67,7 +69,7 @@ export async function ingestBills(
         documentsCreated += 1;
       }
 
-      await deps.billRepository.upsertByMeetingAndNumber({
+      const savedBill = await deps.billRepository.upsertByMeetingAndNumber({
         meetingId: meeting.id,
         billNumber: bill.billNumber,
         title: bill.title,
@@ -75,6 +77,10 @@ export async function ingestBills(
         submittedDate: sessionBills.submittedDate,
         sourceDocumentId: documentId,
       });
+      deps.searchRepository.indexContent(
+        savedBill.id,
+        `${bill.billNumber} ${bill.title} ${link.sessionName}`,
+      );
       billsUpserted += 1;
     }
   }

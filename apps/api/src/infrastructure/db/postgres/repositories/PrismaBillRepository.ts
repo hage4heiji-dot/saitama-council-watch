@@ -1,6 +1,7 @@
 import type { Bill as PrismaBill, BillStatus as PrismaBillStatus, PrismaClient } from "@prisma/client";
 import type { Bill, BillStatus } from "@saitama-council-watch/shared-types";
 import type { BillRepository, UpsertBillInput } from "../../../../domain/bill/BillRepository.js";
+import type { Page, PageQuery } from "../../../../domain/shared/Page.js";
 
 const PRISMA_TO_SHARED_STATUS: Record<PrismaBillStatus, BillStatus> = {
   SUBMITTED: "submitted",
@@ -50,5 +51,30 @@ export class PrismaBillRepository implements BillRepository {
       },
     });
     return toDomain(row);
+  }
+
+  async findPage(query: PageQuery & { meetingId?: string | undefined }): Promise<Page<Bill>> {
+    const rows = await this.client.bill.findMany({
+      orderBy: { id: "desc" },
+      take: query.limit + 1,
+      ...(query.meetingId ? { where: { meetingId: query.meetingId } } : {}),
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = rows.length > query.limit;
+    const items = hasMore ? rows.slice(0, query.limit) : rows;
+    const lastItem = items[items.length - 1];
+    return {
+      items: items.map(toDomain),
+      nextCursor: hasMore && lastItem ? lastItem.id : null,
+    };
+  }
+
+  async findManyByIds(ids: string[]): Promise<Bill[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await this.client.bill.findMany({ where: { id: { in: ids } } });
+    return rows.map(toDomain);
   }
 }

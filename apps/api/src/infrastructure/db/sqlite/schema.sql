@@ -24,8 +24,12 @@ CREATE TABLE IF NOT EXISTS embeddings (
   PRIMARY KEY (document_id, chunk_index)
 );
 
--- 全文検索インデックス(Postgres本文のミラー)
-CREATE VIRTUAL TABLE IF NOT EXISTS fts_documents USING fts5(
-  document_id UNINDEXED,
-  content
+-- 全文検索インデックス(Postgres本文のミラー、Phase2)。
+-- ref_idはPostgres側レコードのid(現状はbills.id)を指す。
+-- 日本語は単語間にスペースがなくunicode61トークナイザでは分割できないため、
+-- 3文字ごとに区切るtrigramトークナイザを使用する(部分一致検索として機能する)。
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+  ref_id UNINDEXED,
+  content,
+  tokenize = 'trigram'
 );
