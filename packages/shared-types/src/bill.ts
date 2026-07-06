@@ -34,6 +34,7 @@ export type BillWithSource = z.infer<typeof BillWithSourceSchema>;
 
 export const BillListQuerySchema = CursorPageQuerySchema.extend({
   meetingId: z.string().uuid().optional(),
+  status: BillStatusSchema.optional(),
 });
 export type BillListQuery = z.infer<typeof BillListQuerySchema>;
 

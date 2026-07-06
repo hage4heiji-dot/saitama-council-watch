@@ -1,19 +1,11 @@
 import Link from "next/link";
 import type { BillStatus } from "@saitama-council-watch/shared-types";
 import { fetchBills, fetchLegislators, fetchMeetings } from "@/lib/apiClient";
+import { BILL_STATUS_LABELS, BILL_STATUS_ORDER } from "@/lib/billStatus";
 import { computeSessionProgress } from "@/lib/sessionProgress";
 import { FactionBar } from "@/components/FactionBar";
 import { Meter } from "@/components/Meter";
 import { StatTile } from "@/components/StatTile";
-
-const BILL_STATUS_ORDER: { status: BillStatus; label: string }[] = [
-  { status: "in_deliberation", label: "審議中" },
-  { status: "passed", label: "可決" },
-  { status: "rejected", label: "否決" },
-  { status: "carried_over", label: "継続審議" },
-  { status: "submitted", label: "提出" },
-  { status: "unconfirmed", label: "詳細要確認" },
-];
 
 export default async function HomePage() {
   // limitはAPIの上限(100)に合わせている。100件を超えたら集計専用の
@@ -70,8 +62,13 @@ export default async function HomePage() {
       <section className="mb-8">
         <h2 className="mb-3 font-semibold">議案の状況(累計{bills.length}件)</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {BILL_STATUS_ORDER.map(({ status, label }) => (
-            <StatTile key={status} label={label} value={statusCounts[status] ?? 0} />
+          {BILL_STATUS_ORDER.map((status) => (
+            <StatTile
+              key={status}
+              label={BILL_STATUS_LABELS[status]}
+              value={statusCounts[status] ?? 0}
+              href={`/bills?status=${status}`}
+            />
           ))}
         </div>
       </section>
