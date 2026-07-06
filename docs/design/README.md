@@ -24,5 +24,6 @@
 | [0012](../adr/0012-phase2-public-site-decisions.md) | Phase2(公開Webサイト最小版)における設計判断 |
 | [0013](../adr/0013-phase3-ai-pipeline.md) | Phase3(AIパイプライン)の設計判断 |
 | [0014](../adr/0014-design-system.md) | 公開サイトのデザインシステム導入 |
+| [0015](../adr/0015-first-production-release.md) | 初回本番リリースで発覚した不具合と対応 |
 
-新しいADRを追加する場合は連番(0015〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
+新しいADRを追加する場合は連番(0016〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
