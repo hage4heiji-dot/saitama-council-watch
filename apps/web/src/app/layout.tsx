@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -7,10 +8,32 @@ export const metadata: Metadata = {
   description: "行政・議会・政治を、市民にわかりやすく。",
 };
 
+const NAV_LINKS = [
+  { href: "/legislators", label: "議員一覧" },
+  { href: "/meetings", label: "会議・議案" },
+  { href: "/search", label: "検索" },
+];
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">{children}</body>
+      <body className="min-h-screen bg-white text-gray-900 antialiased">
+        <header className="border-b border-gray-200">
+          <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+            <Link href="/" className="font-bold">
+              さいたま市議会ウォッチ
+            </Link>
+            <nav className="flex gap-4 text-sm">
+              {NAV_LINKS.map((link) => (
+                <Link key={link.href} href={link.href} className="text-gray-600 hover:text-gray-900">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </header>
+        {children}
+      </body>
     </html>
   );
 }

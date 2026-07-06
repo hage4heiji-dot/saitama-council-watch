@@ -5,6 +5,8 @@ import { prisma } from "../../infrastructure/db/postgres/prismaClient.js";
 import { PrismaBillRepository } from "../../infrastructure/db/postgres/repositories/PrismaBillRepository.js";
 import { PrismaDocumentRepository } from "../../infrastructure/db/postgres/repositories/PrismaDocumentRepository.js";
 import { PrismaMeetingRepository } from "../../infrastructure/db/postgres/repositories/PrismaMeetingRepository.js";
+import { sqlite } from "../../infrastructure/db/sqlite/sqliteClient.js";
+import { SqliteSearchRepository } from "../../infrastructure/db/sqlite/SqliteSearchRepository.js";
 import { runJob } from "../runJob.js";
 
 /**
@@ -18,6 +20,7 @@ export async function scrapeBillsJob(): Promise<number> {
       documentRepository: new PrismaDocumentRepository(prisma),
       meetingRepository: new PrismaMeetingRepository(prisma),
       billRepository: new PrismaBillRepository(prisma),
+      searchRepository: new SqliteSearchRepository(sqlite),
       rawStorageRoot: resolve(process.cwd(), env.RAW_STORAGE_PATH),
     },
     { sessionLimit: env.SCRAPE_BILLS_SESSION_LIMIT },

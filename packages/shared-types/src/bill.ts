@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IsoDateSchema } from "./common.js";
+import { CursorPageQuerySchema, IsoDateSchema } from "./common.js";
 
 export const BillStatusSchema = z.enum([
   "submitted",
@@ -21,6 +21,20 @@ export const BillSchema = z.object({
   sourceDocumentId: z.string().uuid(),
 });
 export type Bill = z.infer<typeof BillSchema>;
+
+/**
+ * 公開API向けの表示用DTO。原本PDFへのリンク(sourceUrl)を併記する
+ * (docs/design/01-basic-design.md §5 ⑪、原本は当市サイトのものへ直接リンクする)。
+ */
+export const BillWithSourceSchema = BillSchema.extend({
+  sourceUrl: z.string().url(),
+});
+export type BillWithSource = z.infer<typeof BillWithSourceSchema>;
+
+export const BillListQuerySchema = CursorPageQuerySchema.extend({
+  meetingId: z.string().uuid().optional(),
+});
+export type BillListQuery = z.infer<typeof BillListQuerySchema>;
 
 export const OrdinanceStatusSchema = z.enum(["in_force", "abolished"]);
 export type OrdinanceStatus = z.infer<typeof OrdinanceStatusSchema>;

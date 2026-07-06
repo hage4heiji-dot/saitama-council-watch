@@ -82,6 +82,7 @@ model Faction {
 
   legislatorHistory LegislatorFactionHistory[]
 
+  @@unique([name])
   @@map("factions")
 }
 
@@ -96,6 +97,8 @@ model Legislator {
   factionHistory LegislatorFactionHistory[]
   votes          Vote[]
 
+  // スクレイピング時の自然キー(プロフィールページURL)。手動追加データはnull許容のまま。
+  @@unique([profileUrl])
   @@map("legislators")
 }
 

@@ -5,3 +5,4 @@ export * from "./meeting.js";
 export * from "./bill.js";
 export * from "./aiContent.js";
 export * from "./user.js";
+export * from "./search.js";
