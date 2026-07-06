@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts"
+    "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts",
+    "scrape:schedule": "tsx --env-file=.env src/batch/jobs/scrapeSessionSchedule.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",

@@ -20,6 +20,7 @@ const EnvSchema = z.object({
     ),
   SCRAPER_REQUEST_DELAY_MS: z.coerce.number().int().nonnegative().default(1500),
   SCRAPE_BILLS_SESSION_LIMIT: z.coerce.number().int().positive().default(1),
+  SCRAPE_SCHEDULE_SESSION_LIMIT: z.coerce.number().int().positive().default(3),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

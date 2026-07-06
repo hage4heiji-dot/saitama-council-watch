@@ -20,5 +20,6 @@
 | [0008](../adr/0008-worker-container-separation.md) | バッチ/AI処理をworkerコンテナとしてAPIから分離 |
 | [0009](../adr/0009-non-root-deploy-user.md) | 非rootの専用デプロイユーザーでプロジェクトを配置・運用する |
 | [0010](../adr/0010-nullable-session-and-bill-dates.md) | Meeting.dateとBill.submittedDateをnullableにする |
+| [0011](../adr/0011-session-schedule-scraping.md) | 会期予定表スクレイピングによるMeeting開始日・終了日の補完(Phase1b) |
 
-新しいADRを追加する場合は連番(0011〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
+新しいADRを追加する場合は連番(0012〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
