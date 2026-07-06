@@ -12,6 +12,7 @@ const BILL_STATUS_ORDER: { status: BillStatus; label: string }[] = [
   { status: "rejected", label: "否決" },
   { status: "carried_over", label: "継続審議" },
   { status: "submitted", label: "提出" },
+  { status: "unconfirmed", label: "詳細要確認" },
 ];
 
 export default async function HomePage() {
@@ -68,7 +69,7 @@ export default async function HomePage() {
 
       <section className="mb-8">
         <h2 className="mb-3 font-semibold">議案の状況(累計{bills.length}件)</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {BILL_STATUS_ORDER.map(({ status, label }) => (
             <StatTile key={status} label={label} value={statusCounts[status] ?? 0} />
           ))}

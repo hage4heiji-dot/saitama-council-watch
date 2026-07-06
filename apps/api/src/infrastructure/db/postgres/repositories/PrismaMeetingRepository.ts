@@ -103,4 +103,12 @@ export class PrismaMeetingRepository implements MeetingRepository {
     const row = await this.client.meeting.findUnique({ where: { id } });
     return row ? toDomain(row) : null;
   }
+
+  async findConcludedPlenarySessions(asOf: Date): Promise<Meeting[]> {
+    const rows = await this.client.meeting.findMany({
+      where: { meetingType: "PLENARY", endDate: { lt: asOf } },
+      orderBy: { endDate: "desc" },
+    });
+    return rows.map(toDomain);
+  }
 }

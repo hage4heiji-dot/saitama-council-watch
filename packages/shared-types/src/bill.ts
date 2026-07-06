@@ -7,6 +7,7 @@ export const BillStatusSchema = z.enum([
   "passed",
   "rejected",
   "carried_over", // 継続審議
+  "unconfirmed", // 審議結果の原本から結果を特定できなかった(docs/adr/0016)
 ]);
 export type BillStatus = z.infer<typeof BillStatusSchema>;
 

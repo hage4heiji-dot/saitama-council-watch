@@ -34,6 +34,10 @@ enum BillStatus {
   PASSED
   REJECTED
   CARRIED_OVER // 継続審議
+  // 会期終了後、審議結果の原本(委員会審査結果報告等)を確認しても結果を特定できなかった議案。
+  // 「提出」のまま放置すると未審議であるかのように見えてしまうため、明示的に区別する
+  // (docs/adr/0016-bill-deliberation-status-sync.md、捏造しないという方針より)。
+  UNCONFIRMED
 }
 
 enum OrdinanceStatus {
