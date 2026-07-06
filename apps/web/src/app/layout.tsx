@@ -17,15 +17,15 @@ const NAV_LINKS = [
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
-        <header className="border-b border-gray-200">
+      <body className="min-h-screen bg-surface-page text-ink-primary antialiased">
+        <header className="border-b border-hairline bg-surface-1">
           <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
             <Link href="/" className="font-bold">
               さいたま市議会ウォッチ
             </Link>
             <nav className="flex gap-4 text-sm">
               {NAV_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className="text-gray-600 hover:text-gray-900">
+                <Link key={link.href} href={link.href} className="text-ink-secondary hover:text-ink-primary">
                   {link.label}
                 </Link>
               ))}
