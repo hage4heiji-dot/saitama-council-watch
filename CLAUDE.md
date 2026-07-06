@@ -48,11 +48,15 @@ docker compose -f infra/docker/compose.yml --env-file .env run --rm api npx pris
 # 再起動
 docker compose -f infra/docker/compose.yml --env-file .env up -d web api worker
 
+# nginxはweb/apiのコンテナIPを起動時に解決してキャッシュするため、
+# web/apiを再作成した後は必ずnginxも再起動する(忘れると502になる。実際に発生済み)
+docker compose -f infra/docker/compose.yml --env-file .env restart nginx
+
 # スモークテスト(必須。自動テストでは検知できない「デプロイ漏れ」バグを実際のページ取得で検知する)
 ./infra/scripts/smoke-test.sh
 ```
 
-`smoke-test.sh` が1件でも `NG` を返したら、デプロイ完了と報告しない。原因(古いイメージが残っている/マイグレーション未適用/実装漏れ)を特定してから再試行する。
+`smoke-test.sh` が1件でも `NG` を返したら、デプロイ完了と報告しない。原因(古いイメージが残っている/マイグレーション未適用/nginxの名前解決キャッシュ/実装漏れ)を特定してから再試行する。
 
 ## 本番環境まわりの注意点(既出だが再掲)
 
