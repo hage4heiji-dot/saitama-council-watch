@@ -42,7 +42,6 @@ export async function ingestBills(
       name: link.sessionName,
       meetingType: "plenary",
       sessionName: link.sessionName,
-      date: null,
     });
 
     const sessionBills = await fetchSessionBills(link);

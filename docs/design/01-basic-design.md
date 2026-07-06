@@ -98,8 +98,8 @@ saitama-council-watch/
 | `legislators`(議員) | id, name, name_kana, first_elected_date, is_active, profile_url | |
 | `factions`(会派) | id, name, founded_date, is_active | |
 | `legislator_faction_history` | legislator_id, faction_id, valid_from, valid_to | 会派移動の履歴を保持 |
-| `meetings`(会議) | id, name, meeting_type, session_name, date, status | |
-| `bills`(議案) | id, meeting_id, bill_number, title, category, submitted_date, status, source_document_id | |
+| `meetings`(会議) | id, name, meeting_type, session_name, start_date(nullable), end_date(nullable), status | [[../adr/0010-nullable-session-and-bill-dates]], [[../adr/0011-session-schedule-scraping]] |
+| `bills`(議案) | id, meeting_id, bill_number, title, category, submitted_date(nullable), status, source_document_id | |
 | `ordinances`(条例) | id, title, enacted_date, bill_id(nullable), status, source_document_id | |
 | `votes`(投票結果) | id, bill_id, legislator_id, vote_type, voted_at | 複合ユニーク(bill_id, legislator_id) |
 | `budgets`(予算) | id, fiscal_year, category, amount, related_bill_id, description | |

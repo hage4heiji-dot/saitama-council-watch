@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { eraYearToSeireki, pad2, parseSessionCore, type Era } from "./eraDate.js";
 import { politeFetch } from "./httpClient.js";
 import { assertAllowedByRobotsTxt } from "./robotsCheck.js";
 
@@ -16,8 +17,6 @@ import { assertAllowedByRobotsTxt } from "./robotsCheck.js";
 const ORIGIN = "https://www.city.saitama.lg.jp";
 const BILLS_INDEX_PATH = "/006/007/002/001/index.html";
 
-const SESSION_CORE_PATTERN =
-  /^(?<core>(?<era>令和|平成)(?<eraYear>\d+)年(?<month>\d+)月(?:（[^）]*）)?(?:定例会|臨時会))/;
 const BILL_LINK_PATTERN = /^議案第(?<number>\S+?)号\s*(?<title>.+)$/;
 const PDF_SIZE_SUFFIX_PATTERN = /[(（]PDF形式[^)）]*[)）]\s*$/;
 const SUBMITTED_DATE_HEADING_PATTERN = /(?<month>\d+)月(?<day>\d+)日提出議案/;
@@ -28,7 +27,7 @@ export interface ScrapedSessionLink {
   /** 例: "令和8年6月定例会 市長提出議案 その1"(リンクテキスト全体) */
   batchLabel: string;
   detailUrl: string;
-  era: "令和" | "平成";
+  era: Era;
   eraYear: number;
 }
 
@@ -42,14 +41,6 @@ export interface ScrapedSessionBills {
   bills: ScrapedBill[];
   /** 原本ページの見出しから解析できた場合のみISO日付を返す。解析できなければnull */
   submittedDate: string | null;
-}
-
-function eraYearToSeireki(era: "令和" | "平成", eraYear: number): number {
-  return era === "令和" ? 2018 + eraYear : 1988 + eraYear;
-}
-
-function pad2(value: number): string {
-  return String(value).padStart(2, "0");
 }
 
 /** セッション一覧ページから各バッチへのリンクを取得する */
@@ -68,18 +59,17 @@ export async function listSessionLinks(): Promise<ScrapedSessionLink[]> {
       return;
     }
 
-    const match = SESSION_CORE_PATTERN.exec(text);
-    const { core, era, eraYear } = match?.groups ?? {};
-    if (!core || !era || !eraYear) {
+    const sessionCore = parseSessionCore(text);
+    if (!sessionCore) {
       return;
     }
 
     links.push({
-      sessionName: core,
+      sessionName: sessionCore.core,
       batchLabel: text,
       detailUrl: new URL(href, indexUrl).toString(),
-      era: era as "令和" | "平成",
-      eraYear: Number(eraYear),
+      era: sessionCore.era,
+      eraYear: sessionCore.eraYear,
     });
   });
 

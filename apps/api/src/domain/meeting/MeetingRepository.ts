@@ -8,9 +8,19 @@ export interface UpsertMeetingInput {
   name: string;
   meetingType: MeetingType;
   sessionName: string;
-  date: string | null;
+}
+
+export interface SessionPeriod {
+  startDate: string;
+  endDate: string;
 }
 
 export interface MeetingRepository {
   upsertBySessionNameAndType(input: UpsertMeetingInput): Promise<Meeting>;
+  /** 会期予定表から取得した開始日・終了日を反映する(Phase1b、docs/adr/0011) */
+  updateSessionPeriod(
+    sessionName: string,
+    meetingType: MeetingType,
+    period: SessionPeriod,
+  ): Promise<Meeting | null>;
 }

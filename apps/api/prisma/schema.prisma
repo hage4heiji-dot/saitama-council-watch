@@ -119,9 +119,11 @@ model Meeting {
   name        String
   meetingType MeetingType   @map("meeting_type")
   sessionName String        @map("session_name")
-  // 定例会・臨時会単位では会期中の特定の開催日が一意に定まらないためnullable。
-  // 個別の本会議・委員会の開催日は将来の会議日程スクレイピング(Phase1b)で補完する。
-  date        DateTime?     @db.Date
+  // 会期予定表(「日程（6月3日～6月26日 24日間）」)から取得する会期の開始日・終了日。
+  // Phase1b(docs/adr/0011)で会議日程スクレイピングにより補完するまではnullable。
+  // 個別の本会議・委員会単位のより粒度の細かい日程は将来の別モデル化を検討する。
+  startDate   DateTime?     @map("start_date") @db.Date
+  endDate     DateTime?     @map("end_date") @db.Date
   status      MeetingStatus @default(SCHEDULED)
 
   bills Bill[]
