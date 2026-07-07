@@ -22,7 +22,7 @@ analysisRouter.get("/cross-tab/legislator-tags", async (req, res, next) => {
       aiContentRepository.findVerifiedByContentType("tags"),
     ]);
     const tagsBySourceDocumentId = buildSourceDocumentTagsMap(tagContents);
-    const matrix = buildLegislatorTagMatrix(votes, tagsBySourceDocumentId, query.status);
+    const matrix = buildLegislatorTagMatrix(votes, tagsBySourceDocumentId, query.status, query.meetingId);
     res.json(matrix);
   } catch (error) {
     next(error);

@@ -93,6 +93,7 @@ export class PrismaVoteRepository implements VoteRepository {
       billId: row.billId,
       billSourceDocumentId: row.bill.sourceDocumentId,
       billStatus: PRISMA_TO_SHARED_STATUS[row.bill.status],
+      billMeetingId: row.bill.meetingId,
       voteType: PRISMA_TO_SHARED_VOTE_TYPE[row.voteType],
     }));
   }

@@ -25,8 +25,12 @@ export const LegislatorTagMatrixSchema = z.object({
 });
 export type LegislatorTagMatrix = z.infer<typeof LegislatorTagMatrixSchema>;
 
-/** statusを指定すると、その可決状態の議案に対する投票のみを対象にする */
+/**
+ * statusを指定すると、その可決状態の議案に対する投票のみを対象にする。
+ * meetingIdを指定すると、その会期(定例会・臨時会)の議案のみを対象にする(期間の絞り込み、docs/adr/0021)。
+ */
 export const LegislatorTagMatrixQuerySchema = z.object({
   status: BillStatusSchema.optional(),
+  meetingId: z.string().uuid().optional(),
 });
 export type LegislatorTagMatrixQuery = z.infer<typeof LegislatorTagMatrixQuerySchema>;

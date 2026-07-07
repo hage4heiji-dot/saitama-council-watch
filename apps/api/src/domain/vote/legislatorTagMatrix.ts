@@ -21,7 +21,8 @@ export interface LegislatorTagMatrix {
 /**
  * 議員×タグのクロス集計(docs/adr/0019)。議員が「そのタグを持つ議案」に対して
  * 賛成・反対した件数を集計する。statusFilterを指定すると、その可決状態の
- * 議案のみを対象にする(例: 可決した議案だけで見る)。
+ * 議案のみを対象にする(例: 可決した議案だけで見る)。meetingIdFilterを指定すると、
+ * その会期(定例会・臨時会)の議案のみを対象にする(期間の絞り込み、docs/adr/0021)。
  *
  * タグが1つも確定していない(未承認/未生成)議案は集計対象から除外する
  * (捏造しない。docs/adr/0007)。投票記録が1件もない議員は結果に含めない
@@ -32,8 +33,11 @@ export function buildLegislatorTagMatrix(
   votes: VoteWithBillInfo[],
   tagsBySourceDocumentId: Map<string, string[]>,
   statusFilter?: BillStatus,
+  meetingIdFilter?: string,
 ): LegislatorTagMatrix {
-  const filteredVotes = statusFilter ? votes.filter((vote) => vote.billStatus === statusFilter) : votes;
+  const filteredVotes = votes
+    .filter((vote) => !statusFilter || vote.billStatus === statusFilter)
+    .filter((vote) => !meetingIdFilter || vote.billMeetingId === meetingIdFilter);
 
   const allTags = new Set<string>();
   const rowsByLegislator = new Map<string, LegislatorTagMatrixRow>();
