@@ -111,4 +111,9 @@ export class PrismaMeetingRepository implements MeetingRepository {
     });
     return rows.map(toDomain);
   }
+
+  async findAll(): Promise<Meeting[]> {
+    const rows = await this.client.meeting.findMany({ orderBy: { startDate: "asc" } });
+    return rows.map(toDomain);
+  }
 }

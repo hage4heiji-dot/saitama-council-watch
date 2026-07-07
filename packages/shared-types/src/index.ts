@@ -1,3 +1,4 @@
+export * from "./committeeMeeting.js";
 export * from "./common.js";
 export * from "./document.js";
 export * from "./legislator.js";

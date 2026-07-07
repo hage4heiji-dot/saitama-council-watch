@@ -133,10 +133,31 @@ model Meeting {
   endDate     DateTime?     @map("end_date") @db.Date
   status      MeetingStatus @default(SCHEDULED)
 
-  bills Bill[]
+  bills             Bill[]
+  committeeMeetings CommitteeMeeting[]
 
   @@unique([sessionName, meetingType])
   @@map("meetings")
+}
+
+// 会議日程一覧(docs/adr/0023)から取得する、本会議・委員会単位の個別日程。
+// Meetingが会期(定例会・臨時会)全体の期間を表すのに対し、こちらは1日単位の実際の開催記録。
+// committeeNameは原本の表記をそのまま保持する(「予算委員会（企業会計関係審査）【中継】」等、
+// 捏造せず正規化しすぎない方針)。meetingIdはdateが対応するMeetingの会期内に収まる場合のみ設定し、
+// 判定できない場合はnullのままにする。
+model CommitteeMeeting {
+  id            String   @id @default(uuid())
+  date          DateTime @db.Date
+  // 原本の時刻表記をそのまま保持する(「10時」「9時30分」「散会後」等)。無い場合はnull。
+  time          String?
+  committeeName String   @map("committee_name")
+  meetingId     String?  @map("meeting_id")
+
+  meeting Meeting? @relation(fields: [meetingId], references: [id])
+
+  @@unique([date, committeeName])
+  @@index([meetingId])
+  @@map("committee_meetings")
 }
 
 model Bill {
