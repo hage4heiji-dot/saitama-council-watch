@@ -34,3 +34,20 @@ export const LegislatorTagMatrixQuerySchema = z.object({
   meetingId: z.string().uuid().optional(),
 });
 export type LegislatorTagMatrixQuery = z.infer<typeof LegislatorTagMatrixQuerySchema>;
+
+/**
+ * 会派×タグのクロス集計向け(docs/adr/0022)。議員×タグと同じ絞り込み軸だが、
+ * 行を議員単位ではなく会派単位でロールアップしたもの。無所属・会派不明はまとめて
+ * 「無所属」行にする。
+ */
+export const FactionTagMatrixRowSchema = z.object({
+  factionName: z.string(),
+  cellsByTag: z.record(z.string(), LegislatorTagCellSchema),
+});
+export type FactionTagMatrixRow = z.infer<typeof FactionTagMatrixRowSchema>;
+
+export const FactionTagMatrixSchema = z.object({
+  tags: z.array(z.string()),
+  rows: z.array(FactionTagMatrixRowSchema),
+});
+export type FactionTagMatrix = z.infer<typeof FactionTagMatrixSchema>;
