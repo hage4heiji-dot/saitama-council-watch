@@ -4,6 +4,7 @@ import type {
   BillDetail,
   BillStatus,
   BillWithSource,
+  LegislatorTagMatrix,
   Legislator,
   Meeting,
   SearchResponse,
@@ -73,6 +74,11 @@ export function fetchBillVotes(id: string): Promise<{ items: VoteWithLegislator[
   return apiFetch<{ items: VoteWithLegislator[] }>(`/bills/${encodeURIComponent(id)}/votes`).catch(() => ({
     items: [],
   }));
+}
+
+export function fetchLegislatorTagMatrix(status?: BillStatus): Promise<LegislatorTagMatrix> {
+  const qs = status ? `?status=${status}` : "";
+  return apiFetch<LegislatorTagMatrix>(`/cross-tab/legislator-tags${qs}`).catch(() => ({ tags: [], rows: [] }));
 }
 
 export type { Bill, BillWithSource, Legislator, Meeting };

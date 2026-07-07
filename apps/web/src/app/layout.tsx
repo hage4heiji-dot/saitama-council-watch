@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/legislators", label: "議員一覧" },
   { href: "/meetings", label: "会議・議案" },
   { href: "/search", label: "検索" },
+  { href: "/analysis", label: "クロス集計" },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {

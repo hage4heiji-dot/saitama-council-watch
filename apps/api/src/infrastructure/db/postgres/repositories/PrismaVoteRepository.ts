@@ -1,6 +1,7 @@
 import type { PrismaClient, VoteType as PrismaVoteType } from "@prisma/client";
 import type { VoteType, VoteWithLegislator } from "@saitama-council-watch/shared-types";
-import type { UpsertVoteInput, VoteRepository } from "../../../../domain/vote/VoteRepository.js";
+import type { UpsertVoteInput, VoteRepository, VoteWithBillInfo } from "../../../../domain/vote/VoteRepository.js";
+import { PRISMA_TO_SHARED_STATUS } from "./PrismaBillRepository.js";
 
 const SHARED_TO_PRISMA_VOTE_TYPE: Record<VoteType, PrismaVoteType> = {
   for: "FOR",
@@ -65,6 +66,28 @@ export class PrismaVoteRepository implements VoteRepository {
       legislatorId: row.legislatorId,
       legislatorName: row.legislator.name,
       factionName: row.legislator.factionHistory[0]?.faction.name ?? null,
+      voteType: PRISMA_TO_SHARED_VOTE_TYPE[row.voteType],
+    }));
+  }
+
+  async findAllWithBillInfo(): Promise<VoteWithBillInfo[]> {
+    const rows = await this.client.vote.findMany({
+      include: {
+        legislator: {
+          include: {
+            factionHistory: { where: { validTo: null }, include: { faction: true } },
+          },
+        },
+        bill: true,
+      },
+    });
+    return rows.map((row) => ({
+      legislatorId: row.legislatorId,
+      legislatorName: row.legislator.name,
+      factionName: row.legislator.factionHistory[0]?.faction.name ?? null,
+      billId: row.billId,
+      billSourceDocumentId: row.bill.sourceDocumentId,
+      billStatus: PRISMA_TO_SHARED_STATUS[row.bill.status],
       voteType: PRISMA_TO_SHARED_VOTE_TYPE[row.voteType],
     }));
   }
