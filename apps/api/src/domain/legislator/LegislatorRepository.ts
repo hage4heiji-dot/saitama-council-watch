@@ -1,4 +1,4 @@
-import type { Legislator } from "@saitama-council-watch/shared-types";
+import type { Faction, Legislator } from "@saitama-council-watch/shared-types";
 
 /**
  * ポート(interface)。実装はinfrastructure/db/postgres/repositories配下に置く
@@ -17,5 +17,15 @@ export interface LegislatorRepository {
    * 新しい履歴行を追加する(会派移動の履歴を保持する設計、docs/design/01-basic-design.md §3.1)。
    */
   setCurrentFaction(legislatorId: string, factionId: string, asOfDate: string): Promise<void>;
-  findAll(): Promise<Legislator[]>;
+  /** includeInactive=trueで元議員(is_active=false)も含める(docs/adr/0020) */
+  findAll(options?: { includeInactive?: boolean }): Promise<Legislator[]>;
+  findById(id: string): Promise<Legislator | null>;
+  /** 会派移動履歴(現在の所属を含む全履歴)。議員詳細画面向け */
+  findFactionHistory(legislatorId: string): Promise<LegislatorFactionHistoryEntry[]>;
+}
+
+export interface LegislatorFactionHistoryEntry {
+  faction: Faction;
+  validFrom: string;
+  validTo: string | null;
 }

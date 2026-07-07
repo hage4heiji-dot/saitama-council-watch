@@ -24,6 +24,8 @@ export interface VoteRepository {
   findByBillId(billId: string): Promise<VoteWithLegislator[]>;
   /** 議員×タグのクロス集計向け(docs/adr/0019)。全投票記録を議員・議案情報付きで返す */
   findAllWithBillInfo(): Promise<VoteWithBillInfo[]>;
+  /** 議員の活動記録画面向け(docs/adr/0020)。指定議員の全投票を議案情報付きで返す */
+  findByLegislatorId(legislatorId: string): Promise<VoteWithBillDetail[]>;
 }
 
 export interface VoteWithBillInfo {
@@ -34,4 +36,14 @@ export interface VoteWithBillInfo {
   billSourceDocumentId: string;
   billStatus: BillStatus;
   voteType: VoteType;
+}
+
+export interface VoteWithBillDetail {
+  billId: string;
+  billNumber: string;
+  billTitle: string;
+  billStatus: BillStatus;
+  billSourceDocumentId: string;
+  voteType: VoteType;
+  votedAt: string;
 }
