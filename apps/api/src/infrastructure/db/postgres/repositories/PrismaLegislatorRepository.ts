@@ -1,6 +1,7 @@
 import type { Legislator as PrismaLegislator, PrismaClient } from "@prisma/client";
 import type { Legislator } from "@saitama-council-watch/shared-types";
 import type {
+  LegislatorFactionHistoryEntry,
   LegislatorRepository,
   UpsertLegislatorInput,
 } from "../../../../domain/legislator/LegislatorRepository.js";
@@ -77,12 +78,33 @@ export class PrismaLegislatorRepository implements LegislatorRepository {
     });
   }
 
-  async findAll(): Promise<Legislator[]> {
+  async findAll(options?: { includeInactive?: boolean }): Promise<Legislator[]> {
     const rows = await this.client.legislator.findMany({
-      where: { isActive: true },
+      ...(options?.includeInactive ? {} : { where: { isActive: true } }),
       include: CURRENT_FACTION_INCLUDE,
       orderBy: { nameKana: "asc" },
     });
     return rows.map(toDomain);
+  }
+
+  async findById(id: string): Promise<Legislator | null> {
+    const row = await this.client.legislator.findUnique({
+      where: { id },
+      include: CURRENT_FACTION_INCLUDE,
+    });
+    return row ? toDomain(row) : null;
+  }
+
+  async findFactionHistory(legislatorId: string): Promise<LegislatorFactionHistoryEntry[]> {
+    const rows = await this.client.legislatorFactionHistory.findMany({
+      where: { legislatorId },
+      include: { faction: true },
+      orderBy: { validFrom: "asc" },
+    });
+    return rows.map((row) => ({
+      faction: toFactionDomain(row.faction),
+      validFrom: row.validFrom.toISOString().slice(0, 10),
+      validTo: row.validTo ? row.validTo.toISOString().slice(0, 10) : null,
+    }));
   }
 }

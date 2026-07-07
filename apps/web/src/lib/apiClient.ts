@@ -4,6 +4,7 @@ import type {
   BillDetail,
   BillStatus,
   BillWithSource,
+  LegislatorDetail,
   LegislatorTagMatrix,
   Legislator,
   Meeting,
@@ -24,8 +25,13 @@ async function apiFetch<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export function fetchLegislators(): Promise<{ items: Legislator[] }> {
-  return apiFetch("/legislators");
+export function fetchLegislators(includeInactive = false): Promise<{ items: Legislator[] }> {
+  const qs = includeInactive ? "?includeInactive=true" : "";
+  return apiFetch(`/legislators${qs}`);
+}
+
+export function fetchLegislatorDetail(id: string): Promise<LegislatorDetail | null> {
+  return apiFetch<LegislatorDetail>(`/legislators/${encodeURIComponent(id)}`).catch(() => null);
 }
 
 export function fetchMeetings(limit = 20): Promise<{ items: Meeting[]; nextCursor: string | null }> {
