@@ -4,6 +4,7 @@ import type {
   BillDetail,
   BillStatus,
   BillWithSource,
+  FactionTagMatrix,
   LegislatorDetail,
   LegislatorTagMatrix,
   Legislator,
@@ -105,6 +106,21 @@ export function fetchLegislatorTagMatrix(status?: BillStatus, meetingId?: string
   }
   const qsString = qs.toString();
   return apiFetch<LegislatorTagMatrix>(`/cross-tab/legislator-tags${qsString ? `?${qsString}` : ""}`).catch(() => ({
+    tags: [],
+    rows: [],
+  }));
+}
+
+export function fetchFactionTagMatrix(status?: BillStatus, meetingId?: string): Promise<FactionTagMatrix> {
+  const qs = new URLSearchParams();
+  if (status) {
+    qs.set("status", status);
+  }
+  if (meetingId) {
+    qs.set("meetingId", meetingId);
+  }
+  const qsString = qs.toString();
+  return apiFetch<FactionTagMatrix>(`/cross-tab/faction-tags${qsString ? `?${qsString}` : ""}`).catch(() => ({
     tags: [],
     rows: [],
   }));
