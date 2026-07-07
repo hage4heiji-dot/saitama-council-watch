@@ -13,7 +13,9 @@ import {
   GROUNDING_CHECK_SYSTEM_PROMPT,
 } from "./prompts/billAnalysisPrompt.js";
 
-const MODEL = "claude-sonnet-5";
+// コスト重視(docs/adr/0013): 定型的な行政文書の要約・タグ・FAQ生成という用途では
+// Haiku 4.5で十分な精度が見込め、Sonnet 5の約半額で運用できる。
+const MODEL = "claude-haiku-4-5";
 
 interface AnalysisToolInput {
   summary: string;
