@@ -35,12 +35,17 @@ npm run test
 
 **重要**: nginx/web/api/workerは同じ`docker compose`スタックの一部だが、独立にビルド・再起動できてしまう。**変更がAPIだけ/webだけに見えても、フロントエンドとバックエンドの型(`packages/shared-types`)は共有されているため、必ず変更のあった全サービスを揃えて再ビルド・再起動すること。** 「apiだけ再ビルドしてwebを忘れる」は実際に本番障害を起こした(旧webイメージが新しい`BillStatus`値を認識できずサーバーエラー)。迷ったら `web api worker` の3つとも再ビルドする。
 
+**重要**: 本番VPSはメモリが1.92GBしかない。`docker compose build web api worker`のように複数サービスを一括ビルドすると、Next.js/tscのビルドプロセスが並列に走ってメモリを食い潰し、swapスラッシングでVPS全体がフリーズすることが実際にあった。**必ず1サービスずつ順番にビルドすること。**
+
 ```bash
 cd /home/deploy/saitama-council-watch
 git checkout main && git pull
 
-# 変更されたサービスを"すべて"再ビルド(迷ったらweb api workerの3つとも)
-docker compose -f infra/docker/compose.yml --env-file .env build web api worker
+# 変更されたサービスを"すべて"再ビルド(迷ったらweb api workerの3つとも)。
+# 必ず1つずつ実行する(同時ビルドはメモリ不足でフリーズする実績あり)。
+docker compose -f infra/docker/compose.yml --env-file .env build web
+docker compose -f infra/docker/compose.yml --env-file .env build api
+docker compose -f infra/docker/compose.yml --env-file .env build worker
 
 # Prismaマイグレーションが追加されていれば適用(スキーマ変更がなければスキップ可)
 docker compose -f infra/docker/compose.yml --env-file .env run --rm api npx prisma migrate deploy
