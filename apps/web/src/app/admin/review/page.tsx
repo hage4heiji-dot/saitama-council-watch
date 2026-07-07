@@ -3,11 +3,11 @@ import { fetchPendingAiContents } from "@/lib/apiClient";
 export const metadata = { title: "AIコンテンツ確認(管理) | さいたま市議会ウォッチ" };
 
 interface AdminReviewPageProps {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; verifyError?: string }>;
 }
 
 export default async function AdminReviewPage({ searchParams }: AdminReviewPageProps) {
-  const { token } = await searchParams;
+  const { token, verifyError } = await searchParams;
 
   if (!token) {
     return (
@@ -44,6 +44,7 @@ export default async function AdminReviewPage({ searchParams }: AdminReviewPageP
         承認するとis_verified=trueとなり、公開Webに表示されます(docs/adr/0007)。
       </p>
       {error && <p className="mb-4 text-red-600">{error}</p>}
+      {verifyError && <p className="mb-4 text-red-600">承認に失敗しました: {verifyError}</p>}
       <ul className="divide-y divide-gray-200">
         {items.map((item) => (
           <li key={item.aiContent.id} className="py-4">

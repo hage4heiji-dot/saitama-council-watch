@@ -86,6 +86,7 @@ export async function verifyAiContent(token: string, id: string, verifiedBy: str
     body: JSON.stringify({ verifiedBy }),
   });
   if (!res.ok) {
-    throw new Error(`internal API request failed (${res.status})`);
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `internal API request failed (${res.status})`);
   }
 }
