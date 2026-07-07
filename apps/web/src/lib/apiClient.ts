@@ -7,6 +7,7 @@ import type {
   Legislator,
   Meeting,
   SearchResponse,
+  TagCount,
   VoteWithLegislator,
 } from "@saitama-council-watch/shared-types";
 
@@ -46,6 +47,10 @@ export function fetchBills(
   }
   qs.set("limit", String(params.limit ?? 50));
   return apiFetch(`/bills?${qs.toString()}`);
+}
+
+export function fetchTagCounts(): Promise<{ items: TagCount[] }> {
+  return apiFetch<{ items: TagCount[] }>("/tags").catch(() => ({ items: [] }));
 }
 
 export function searchBills(q: string, limit = 20): Promise<SearchResponse> {

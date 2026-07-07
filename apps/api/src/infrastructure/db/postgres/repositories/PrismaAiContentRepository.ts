@@ -87,4 +87,11 @@ export class PrismaAiContentRepository implements AiContentRepository {
     });
     return toDomain(row);
   }
+
+  async findVerifiedByContentType(contentType: AiContentType): Promise<AiContent[]> {
+    const rows = await this.client.aiContent.findMany({
+      where: { contentType: SHARED_TO_PRISMA_TYPE[contentType], isVerified: true },
+    });
+    return rows.map(toDomain);
+  }
 }

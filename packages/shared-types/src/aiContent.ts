@@ -49,3 +49,10 @@ export const VerifyAiContentInputSchema = z.object({
   verifiedBy: z.string().min(1, "確認者名を入力してください"),
 });
 export type VerifyAiContentInput = z.infer<typeof VerifyAiContentInputSchema>;
+
+/** ホーム画面のタグ別件数表示向け(承認済み(isVerified=true)のタグのみ集計対象) */
+export const TagCountSchema = z.object({
+  tag: z.string().min(1),
+  count: z.number().int().nonnegative(),
+});
+export type TagCount = z.infer<typeof TagCountSchema>;
