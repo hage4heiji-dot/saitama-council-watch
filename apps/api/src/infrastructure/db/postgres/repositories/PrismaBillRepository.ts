@@ -64,11 +64,16 @@ export class PrismaBillRepository implements BillRepository {
   }
 
   async findPage(
-    query: PageQuery & { meetingId?: string | undefined; status?: BillStatus | undefined },
+    query: PageQuery & {
+      meetingId?: string | undefined;
+      status?: BillStatus | undefined;
+      sourceDocumentIds?: string[] | undefined;
+    },
   ): Promise<Page<Bill>> {
     const where = {
       ...(query.meetingId ? { meetingId: query.meetingId } : {}),
       ...(query.status ? { status: SHARED_TO_PRISMA_STATUS[query.status] } : {}),
+      ...(query.sourceDocumentIds ? { sourceDocumentId: { in: query.sourceDocumentIds } } : {}),
     };
     const rows = await this.client.bill.findMany({
       orderBy: { id: "desc" },

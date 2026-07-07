@@ -1,27 +1,15 @@
 import type { AiContent, TagCount } from "@saitama-council-watch/shared-types";
+import { buildSourceDocumentTagsMap } from "./billTags.js";
 
 /**
  * 承認済み(isVerified=true)のタグAiContentから、タグ別の件数を集計する(ホーム画面向け)。
- * タグは`AiContent.body`にJSON配列文字列として保存されている(GenerateAiContentUseCase参照)。
- * 想定外の形式(パース失敗)の行は捏造を避けて無視する。
+ * タグの解決自体はbuildSourceDocumentTagsMap(billTags.ts)に委譲し、集計のみ行う。
  */
 export function aggregateTagCounts(tagContents: AiContent[]): TagCount[] {
   const counts = new Map<string, number>();
 
-  for (const content of tagContents) {
-    let tags: unknown;
-    try {
-      tags = JSON.parse(content.body);
-    } catch {
-      continue;
-    }
-    if (!Array.isArray(tags)) {
-      continue;
-    }
+  for (const tags of buildSourceDocumentTagsMap(tagContents).values()) {
     for (const tag of tags) {
-      if (typeof tag !== "string" || tag.length === 0) {
-        continue;
-      }
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }

@@ -1,5 +1,6 @@
 import type { Bill, BillDetail } from "@saitama-council-watch/shared-types";
 import type { AiContentRepository } from "../../domain/aiContent/AiContentRepository.js";
+import { buildSourceDocumentTagsMap } from "../../domain/aiContent/billTags.js";
 import type { DocumentRepository } from "../../domain/document/DocumentRepository.js";
 import { attachSourceUrl } from "./attachSourceUrl.js";
 
@@ -12,18 +13,19 @@ export async function buildBillDetail(
   documentRepository: DocumentRepository,
   aiContentRepository: AiContentRepository,
 ): Promise<BillDetail> {
-  const withSource = await attachSourceUrl(bill, documentRepository);
   const aiContents = await aiContentRepository.findBySourceDocumentId(bill.sourceDocumentId);
   const verified = aiContents.filter((content) => content.isVerified);
 
   const summary = verified.find((content) => content.contentType === "summary")?.body ?? null;
-  const tagsBody = verified.find((content) => content.contentType === "tags")?.body;
+  const tagsContent = verified.find((content) => content.contentType === "tags");
   const faqBody = verified.find((content) => content.contentType === "faq")?.body;
+
+  const tagsBySourceDocumentId = tagsContent ? buildSourceDocumentTagsMap([tagsContent]) : new Map();
+  const withSource = await attachSourceUrl(bill, documentRepository, tagsBySourceDocumentId);
 
   return {
     ...withSource,
     aiSummary: summary,
-    aiTags: tagsBody ? (JSON.parse(tagsBody) as string[]) : [],
     aiFaq: faqBody ? (JSON.parse(faqBody) as { question: string; answer: string }[]) : [],
   };
 }

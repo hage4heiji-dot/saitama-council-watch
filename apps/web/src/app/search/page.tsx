@@ -1,23 +1,39 @@
 import Link from "next/link";
-import { searchBills } from "@/lib/apiClient";
+import { fetchTagCounts, searchBills } from "@/lib/apiClient";
 import { HighlightedSnippet } from "@/components/HighlightedSnippet";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TagList } from "@/components/TagList";
 
 export const metadata = { title: "議案検索 | さいたま市議会ウォッチ" };
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; tag?: string }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q } = await searchParams;
+  const { q, tag } = await searchParams;
   const query = q?.trim() ?? "";
-  const response = query.length > 0 ? await searchBills(query) : null;
+  const [response, { items: allTagCounts }] = await Promise.all([
+    query.length > 0 ? searchBills(query, 20, tag) : Promise.resolve(null),
+    fetchTagCounts(),
+  ]);
+
+  function hrefFor(nextQuery: string, nextTag?: string): string {
+    const params = new URLSearchParams();
+    if (nextQuery) {
+      params.set("q", nextQuery);
+    }
+    if (nextTag) {
+      params.set("tag", nextTag);
+    }
+    const qs = params.toString();
+    return qs ? `/search?${qs}` : "/search";
+  }
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="mb-6 text-xl font-bold">議案を検索</h1>
-      <form action="/search" method="get" className="mb-8 flex gap-2">
+      <form action="/search" method="get" className="mb-4 flex gap-2">
         <input
           type="text"
           name="q"
@@ -25,15 +41,36 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           placeholder="例: 補正予算、条例の制定について"
           className="flex-1 rounded border border-hairline bg-surface-1 px-3 py-2 text-ink-primary"
         />
+        {tag && <input type="hidden" name="tag" value={tag} />}
         <button type="submit" className="rounded bg-series-1 px-4 py-2 text-white">
           検索
         </button>
       </form>
 
+      {allTagCounts.length > 0 && (
+        <div className="mb-8 flex flex-wrap gap-2 text-sm">
+          <Link
+            href={hrefFor(query, undefined)}
+            className={`rounded-full border border-hairline px-3 py-1 ${!tag ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+          >
+            タグ: すべて
+          </Link>
+          {allTagCounts.map(({ tag: t, count }) => (
+            <Link
+              key={t}
+              href={hrefFor(query, t)}
+              className={`rounded-full border border-hairline px-3 py-1 ${tag === t ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+            >
+              {t}({count})
+            </Link>
+          ))}
+        </div>
+      )}
+
       {response && (
         <>
           <p className="mb-4 text-sm text-ink-muted">
-            「{response.query}」の検索結果: {response.results.length}件
+            「{response.query}」の検索結果{tag ? `(タグ: ${tag})` : ""}: {response.results.length}件
           </p>
           <ul className="divide-y divide-hairline">
             {response.results.map((result) => (
@@ -55,6 +92,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 >
                   原本PDF
                 </a>
+                <TagList tags={result.bill.tags} hrefForTag={(t) => hrefFor(query, t)} />
               </li>
             ))}
             {response.results.length === 0 && (

@@ -26,15 +26,18 @@ export type Bill = z.infer<typeof BillSchema>;
 /**
  * 公開API向けの表示用DTO。原本PDFへのリンク(sourceUrl)を併記する
  * (docs/design/01-basic-design.md §5 ⑪、原本は当市サイトのものへ直接リンクする)。
+ * tagsは承認済み(is_verified=true)のAIタグのみを含む(docs/adr/0007)。
  */
 export const BillWithSourceSchema = BillSchema.extend({
   sourceUrl: z.string().url(),
+  tags: z.array(z.string()),
 });
 export type BillWithSource = z.infer<typeof BillWithSourceSchema>;
 
 export const BillListQuerySchema = CursorPageQuerySchema.extend({
   meetingId: z.string().uuid().optional(),
   status: BillStatusSchema.optional(),
+  tag: z.string().min(1).optional(),
 });
 export type BillListQuery = z.infer<typeof BillListQuerySchema>;
 
@@ -46,10 +49,10 @@ const FaqItemSchema = z.object({
 /**
  * 議案詳細向けDTO(Phase3)。承認済み(is_verified=true)のAIコンテンツのみを含める
  * (docs/adr/0007-ai-human-review-gate.md)。未承認の場合はnull/空配列。
+ * タグは継承元のBillWithSourceSchema.tagsを使う(議案一覧・検索と同じ解決ロジック)。
  */
 export const BillDetailSchema = BillWithSourceSchema.extend({
   aiSummary: z.string().nullable(),
-  aiTags: z.array(z.string()),
   aiFaq: z.array(FaqItemSchema),
 });
 export type BillDetail = z.infer<typeof BillDetailSchema>;

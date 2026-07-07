@@ -27,5 +27,6 @@
 | [0015](../adr/0015-first-production-release.md) | 初回本番リリースで発覚した不具合と対応 |
 | [0016](../adr/0016-bill-deliberation-status-sync.md) | 議案審議結果の同期(資料検索システムからのBill.status反映) |
 | [0017](../adr/0017-bill-vote-stance-ingestion.md) | 議案表決態度(議員別賛否)の取り込み |
+| [0018](../adr/0018-tag-filtering-and-latest-session-scoping.md) | タグによる議案の絞り込み・表示と、ホーム画面の最新会期スコープ化 |
 
-新しいADRを追加する場合は連番(0018〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
+新しいADRを追加する場合は連番(0019〜)で作成し、この表と本README、関連する `01-basic-design.md` の該当箇所を更新すること。
