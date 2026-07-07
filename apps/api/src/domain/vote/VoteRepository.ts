@@ -35,6 +35,7 @@ export interface VoteWithBillInfo {
   billId: string;
   billSourceDocumentId: string;
   billStatus: BillStatus;
+  billMeetingId: string;
   voteType: VoteType;
 }
 

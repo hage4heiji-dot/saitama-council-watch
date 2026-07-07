@@ -1,23 +1,38 @@
 import Link from "next/link";
 import type { BillStatus } from "@saitama-council-watch/shared-types";
-import { fetchLegislatorTagMatrix } from "@/lib/apiClient";
+import { fetchLegislatorTagMatrix, fetchMeetings } from "@/lib/apiClient";
 import { BILL_STATUS_LABELS, BILL_STATUS_ORDER } from "@/lib/billStatus";
 
 export const metadata = { title: "議員×タグ クロス集計 | さいたま市議会ウォッチ" };
 
 interface AnalysisPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; meetingId?: string }>;
 }
 
 function isBillStatus(value: string): value is BillStatus {
   return (BILL_STATUS_ORDER as string[]).includes(value);
 }
 
+function hrefFor(options: { status?: string | undefined; meetingId?: string | undefined }): string {
+  const params = new URLSearchParams();
+  if (options.status) {
+    params.set("status", options.status);
+  }
+  if (options.meetingId) {
+    params.set("meetingId", options.meetingId);
+  }
+  const qs = params.toString();
+  return qs ? `/analysis?${qs}` : "/analysis";
+}
+
 export default async function AnalysisPage({ searchParams }: AnalysisPageProps) {
-  const { status: rawStatus } = await searchParams;
+  const { status: rawStatus, meetingId } = await searchParams;
   const status = rawStatus && isBillStatus(rawStatus) ? rawStatus : undefined;
 
-  const matrix = await fetchLegislatorTagMatrix(status);
+  const [matrix, { items: meetings }] = await Promise.all([
+    fetchLegislatorTagMatrix(status, meetingId),
+    fetchMeetings(50),
+  ]);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -26,9 +41,29 @@ export default async function AnalysisPage({ searchParams }: AnalysisPageProps) 
         議員がタグの付いた議案にどう投票したか(賛成/反対の件数)を集計します。承認済みのAIタグと投票記録の両方がある議案のみが対象です。
       </p>
 
+      {meetings.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2 text-sm">
+          <Link
+            href={hrefFor({ status, meetingId: undefined })}
+            className={`rounded-full border border-hairline px-3 py-1 ${!meetingId ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+          >
+            会期: すべて
+          </Link>
+          {meetings.map((meeting) => (
+            <Link
+              key={meeting.id}
+              href={hrefFor({ status, meetingId: meeting.id })}
+              className={`rounded-full border border-hairline px-3 py-1 ${meetingId === meeting.id ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+            >
+              {meeting.sessionName}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div className="mb-6 flex flex-wrap gap-2 text-sm">
         <Link
-          href="/analysis"
+          href={hrefFor({ status: undefined, meetingId })}
           className={`rounded-full border border-hairline px-3 py-1 ${!status ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
         >
           すべて
@@ -36,7 +71,7 @@ export default async function AnalysisPage({ searchParams }: AnalysisPageProps) 
         {BILL_STATUS_ORDER.map((s) => (
           <Link
             key={s}
-            href={`/analysis?status=${s}`}
+            href={hrefFor({ status: s, meetingId })}
             className={`rounded-full border border-hairline px-3 py-1 ${status === s ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
           >
             {BILL_STATUS_LABELS[s]}

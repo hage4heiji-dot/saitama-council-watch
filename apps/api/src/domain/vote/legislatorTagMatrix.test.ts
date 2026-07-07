@@ -10,6 +10,7 @@ function fakeVote(overrides: Partial<VoteWithBillInfo>): VoteWithBillInfo {
     billId: "bill-1",
     billSourceDocumentId: "doc-1",
     billStatus: "passed",
+    billMeetingId: "meeting-1",
     voteType: "for",
     ...overrides,
   };
@@ -70,5 +71,24 @@ describe("buildLegislatorTagMatrix", () => {
     const votes: VoteWithBillInfo[] = [fakeVote({ billSourceDocumentId: "doc-1" })];
     const matrix = buildLegislatorTagMatrix(votes, new Map([["doc-1", ["予算"]]]));
     expect(matrix.rows).toHaveLength(1);
+  });
+
+  it("meetingIdFilterを指定すると、その会期の議案のみを対象にする(期間の絞り込み)", () => {
+    const votes: VoteWithBillInfo[] = [
+      fakeVote({ billSourceDocumentId: "doc-1", billMeetingId: "meeting-1", voteType: "for" }),
+      fakeVote({
+        billSourceDocumentId: "doc-1",
+        billMeetingId: "meeting-2",
+        voteType: "against",
+        billId: "bill-2",
+      }),
+    ];
+    const tagsBySourceDocumentId = new Map([["doc-1", ["予算"]]]);
+
+    const meeting1Only = buildLegislatorTagMatrix(votes, tagsBySourceDocumentId, undefined, "meeting-1");
+    expect(meeting1Only.rows[0]?.cellsByTag).toEqual({ 予算: { for: 1, against: 0 } });
+
+    const meeting2Only = buildLegislatorTagMatrix(votes, tagsBySourceDocumentId, undefined, "meeting-2");
+    expect(meeting2Only.rows[0]?.cellsByTag).toEqual({ 予算: { for: 0, against: 1 } });
   });
 });

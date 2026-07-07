@@ -41,6 +41,9 @@ searchRouter.get("/search", async (req, res, next) => {
       if (query.tag && !tags.includes(query.tag)) {
         continue;
       }
+      if (query.meetingId && bill.meetingId !== query.meetingId) {
+        continue;
+      }
       results.push({
         bill: await attachSourceUrl(bill, documentRepository, tagsBySourceDocumentId),
         snippet: hit.snippet,

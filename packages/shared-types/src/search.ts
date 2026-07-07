@@ -13,6 +13,7 @@ export const SearchQuerySchema = z.object({
   q: z.string().min(1, "検索キーワードを入力してください"),
   limit: z.coerce.number().int().min(1).max(50).default(20),
   tag: z.string().min(1).optional(),
+  meetingId: z.string().uuid().optional(),
 });
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
 

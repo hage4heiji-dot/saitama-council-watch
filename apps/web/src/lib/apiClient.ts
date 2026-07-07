@@ -43,7 +43,12 @@ export function fetchMeeting(id: string): Promise<Meeting | null> {
 }
 
 export function fetchBills(
-  params: { meetingId?: string; status?: BillStatus | undefined; tag?: string | undefined; limit?: number } = {},
+  params: {
+    meetingId?: string | undefined;
+    status?: BillStatus | undefined;
+    tag?: string | undefined;
+    limit?: number;
+  } = {},
 ): Promise<{ items: BillWithSource[]; nextCursor: string | null }> {
   const qs = new URLSearchParams();
   if (params.meetingId) {
@@ -64,10 +69,18 @@ export function fetchTagCounts(meetingId?: string): Promise<{ items: TagCount[] 
   return apiFetch<{ items: TagCount[] }>(`/tags${qs}`).catch(() => ({ items: [] }));
 }
 
-export function searchBills(q: string, limit = 20, tag?: string): Promise<SearchResponse> {
+export function searchBills(
+  q: string,
+  limit = 20,
+  tag?: string,
+  meetingId?: string,
+): Promise<SearchResponse> {
   const qs = new URLSearchParams({ q, limit: String(limit) });
   if (tag) {
     qs.set("tag", tag);
+  }
+  if (meetingId) {
+    qs.set("meetingId", meetingId);
   }
   return apiFetch(`/search?${qs.toString()}`);
 }
@@ -82,9 +95,19 @@ export function fetchBillVotes(id: string): Promise<{ items: VoteWithLegislator[
   }));
 }
 
-export function fetchLegislatorTagMatrix(status?: BillStatus): Promise<LegislatorTagMatrix> {
-  const qs = status ? `?status=${status}` : "";
-  return apiFetch<LegislatorTagMatrix>(`/cross-tab/legislator-tags${qs}`).catch(() => ({ tags: [], rows: [] }));
+export function fetchLegislatorTagMatrix(status?: BillStatus, meetingId?: string): Promise<LegislatorTagMatrix> {
+  const qs = new URLSearchParams();
+  if (status) {
+    qs.set("status", status);
+  }
+  if (meetingId) {
+    qs.set("meetingId", meetingId);
+  }
+  const qsString = qs.toString();
+  return apiFetch<LegislatorTagMatrix>(`/cross-tab/legislator-tags${qsString ? `?${qsString}` : ""}`).catch(() => ({
+    tags: [],
+    rows: [],
+  }));
 }
 
 export type { Bill, BillWithSource, Legislator, Meeting };
