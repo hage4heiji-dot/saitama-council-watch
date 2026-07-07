@@ -4,6 +4,7 @@ import type {
   BillDetail,
   BillStatus,
   BillWithSource,
+  CommitteeMeeting,
   FactionTagMatrix,
   LegislatorDetail,
   LegislatorTagMatrix,
@@ -41,6 +42,10 @@ export function fetchMeetings(limit = 20): Promise<{ items: Meeting[]; nextCurso
 
 export function fetchMeeting(id: string): Promise<Meeting | null> {
   return apiFetch<Meeting>(`/meetings/${encodeURIComponent(id)}`).catch(() => null);
+}
+
+export function fetchCommitteeMeetings(): Promise<{ items: CommitteeMeeting[] }> {
+  return apiFetch<{ items: CommitteeMeeting[] }>("/committee-meetings").catch(() => ({ items: [] }));
 }
 
 export function fetchBills(

@@ -15,6 +15,7 @@
     "prisma:migrate": "prisma migrate dev",
     "scrape:bills": "tsx --env-file=.env src/batch/jobs/scrapeBills.ts",
     "scrape:schedule": "tsx --env-file=.env src/batch/jobs/scrapeSessionSchedule.ts",
+    "scrape:committee-schedule": "tsx --env-file=.env src/batch/jobs/scrapeCommitteeSchedule.ts",
     "scrape:legislators": "tsx --env-file=.env src/batch/jobs/scrapeLegislators.ts",
     "sync:bill-status": "tsx --env-file=.env src/batch/jobs/syncBillDeliberationResults.ts",
     "sync:bill-votes": "tsx --env-file=.env src/batch/jobs/syncBillVotes.ts",

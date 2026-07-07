@@ -26,6 +26,8 @@ export interface MeetingRepository {
   ): Promise<Meeting | null>;
   findPage(query: PageQuery): Promise<Page<Meeting>>;
   findById(id: string): Promise<Meeting | null>;
+  /** 会議日程一覧の各日付がどの会期に属するか判定するために使う(docs/adr/0023) */
+  findAll(): Promise<Meeting[]>;
   /** 会期が既に終了している(endDate < asOf)本会議を取得する(docs/adr/0016 審議結果同期の対象選定) */
   findConcludedPlenarySessions(asOf: Date): Promise<Meeting[]>;
 }

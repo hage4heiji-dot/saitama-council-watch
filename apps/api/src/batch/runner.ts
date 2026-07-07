@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { generateAiContentJob } from "./jobs/generateAiContent.js";
 import { scrapeBillsJob } from "./jobs/scrapeBills.js";
+import { scrapeCommitteeScheduleJob } from "./jobs/scrapeCommitteeSchedule.js";
 import { scrapeLegislatorsJob } from "./jobs/scrapeLegislators.js";
 import { scrapeSessionScheduleJob } from "./jobs/scrapeSessionSchedule.js";
 import { syncBillDeliberationResultsJob } from "./jobs/syncBillDeliberationResults.js";
@@ -30,6 +31,12 @@ cron.schedule("0 18 * * *", () => {
 // 会期予定表の取り込み(Phase1b)。議案スクレイピングの後に実行し、Meeting行を更新する。
 cron.schedule("30 18 * * *", () => {
   void runJob("scrape-session-schedule", scrapeSessionScheduleJob);
+});
+
+// 会議日程一覧(本会議・委員会単位の個別日程)の取り込み(docs/adr/0023)。
+// 会期予定表の後に実行し、CommitteeMeeting.meetingIdの解決にMeeting行を使う。
+cron.schedule("35 18 * * *", () => {
+  void runJob("scrape-committee-schedule", scrapeCommitteeScheduleJob);
 });
 
 // 議員・会派の取り込み(Phase2)。更新頻度は低いため1日1回で十分。

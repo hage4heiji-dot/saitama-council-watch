@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "/meetings", label: "会議・議案" },
   { href: "/search", label: "検索" },
   { href: "/analysis", label: "クロス集計" },
+  { href: "/milestones", label: "年間マイルストーン" },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {
