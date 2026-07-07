@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { fetchTagCounts, searchBills } from "@/lib/apiClient";
+import type { BillWithSource } from "@saitama-council-watch/shared-types";
+import { fetchBills, fetchTagCounts, searchBills } from "@/lib/apiClient";
 import { HighlightedSnippet } from "@/components/HighlightedSnippet";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TagList } from "@/components/TagList";
@@ -10,11 +11,23 @@ interface SearchPageProps {
   searchParams: Promise<{ q?: string; tag?: string }>;
 }
 
+interface ResultRow {
+  bill: BillWithSource;
+  /** キーワード未入力(全件表示)の場合はnull(ハイライトするキーワードがないため) */
+  snippet: string | null;
+}
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q, tag } = await searchParams;
   const query = q?.trim() ?? "";
-  const [response, { items: allTagCounts }] = await Promise.all([
-    query.length > 0 ? searchBills(query, 20, tag) : Promise.resolve(null),
+
+  // キーワード未入力の場合は「全件表示(タグのみで絞り込み可)」として扱う。
+  const [rows, { items: allTagCounts }] = await Promise.all([
+    query.length > 0
+      ? searchBills(query, 20, tag).then((response) => response.results)
+      : fetchBills({ tag, limit: 100 }).then((response) =>
+          response.items.map((bill): ResultRow => ({ bill, snippet: null })),
+        ),
     fetchTagCounts(),
   ]);
 
@@ -67,40 +80,37 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </div>
       )}
 
-      {response && (
-        <>
-          <p className="mb-4 text-sm text-ink-muted">
-            「{response.query}」の検索結果{tag ? `(タグ: ${tag})` : ""}: {response.results.length}件
-          </p>
-          <ul className="divide-y divide-hairline">
-            {response.results.map((result) => (
-              <li key={result.bill.id} className="py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <Link href={`/bills/${result.bill.id}`} className="font-medium hover:underline">
-                    {result.bill.billNumber} {result.bill.title}
-                  </Link>
-                  <StatusBadge status={result.bill.status} />
-                </div>
-                <div className="mt-1 text-sm text-ink-secondary">
-                  <HighlightedSnippet snippet={result.snippet} />
-                </div>
-                <a
-                  href={result.bill.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-series-1 hover:underline"
-                >
-                  原本PDF
-                </a>
-                <TagList tags={result.bill.tags} hrefForTag={(t) => hrefFor(query, t)} />
-              </li>
-            ))}
-            {response.results.length === 0 && (
-              <li className="py-3 text-ink-muted">該当する議案が見つかりませんでした。</li>
+      <p className="mb-4 text-sm text-ink-muted">
+        {query.length > 0 ? `「${query}」の検索結果` : "議案一覧(全件)"}
+        {tag ? `(タグ: ${tag})` : ""}: {rows.length}件
+      </p>
+      <ul className="divide-y divide-hairline">
+        {rows.map((result) => (
+          <li key={result.bill.id} className="py-3">
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/bills/${result.bill.id}`} className="font-medium hover:underline">
+                {result.bill.billNumber} {result.bill.title}
+              </Link>
+              <StatusBadge status={result.bill.status} />
+            </div>
+            {result.snippet && (
+              <div className="mt-1 text-sm text-ink-secondary">
+                <HighlightedSnippet snippet={result.snippet} />
+              </div>
             )}
-          </ul>
-        </>
-      )}
+            <a
+              href={result.bill.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-series-1 hover:underline"
+            >
+              原本PDF
+            </a>
+            <TagList tags={result.bill.tags} hrefForTag={(t) => hrefFor(query, t)} />
+          </li>
+        ))}
+        {rows.length === 0 && <li className="py-3 text-ink-muted">該当する議案が見つかりませんでした。</li>}
+      </ul>
     </main>
   );
 }
