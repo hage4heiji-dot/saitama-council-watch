@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { BillStatus } from "@saitama-council-watch/shared-types";
-import { fetchBills, fetchLegislators, fetchMeetings } from "@/lib/apiClient";
+import { fetchBills, fetchLegislators, fetchMeetings, fetchTagCounts } from "@/lib/apiClient";
 import { BILL_STATUS_LABELS, BILL_STATUS_ORDER } from "@/lib/billStatus";
 import { computeSessionProgress } from "@/lib/sessionProgress";
 import { FactionBar } from "@/components/FactionBar";
@@ -10,11 +10,13 @@ import { StatTile } from "@/components/StatTile";
 export default async function HomePage() {
   // limitはAPIの上限(100)に合わせている。100件を超えたら集計専用の
   // エンドポイントを別途用意すること(現状のデータ規模ではYAGNI)。
-  const [{ items: meetings }, { items: bills }, { items: legislators }] = await Promise.all([
-    fetchMeetings(5),
-    fetchBills({ limit: 100 }),
-    fetchLegislators(),
-  ]);
+  const [{ items: meetings }, { items: bills }, { items: legislators }, { items: tagCounts }] =
+    await Promise.all([
+      fetchMeetings(5),
+      fetchBills({ limit: 100 }),
+      fetchLegislators(),
+      fetchTagCounts(),
+    ]);
 
   const latestMeeting = meetings[0] ?? null;
   const sessionProgress =
@@ -79,6 +81,17 @@ export default async function HomePage() {
         </h2>
         <FactionBar factions={factions} />
       </section>
+
+      {tagCounts.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-semibold">議案のタグ別件数(AI要約承認済み分)</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {tagCounts.map((tagCount) => (
+              <StatTile key={tagCount.tag} label={tagCount.tag} value={tagCount.count} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link

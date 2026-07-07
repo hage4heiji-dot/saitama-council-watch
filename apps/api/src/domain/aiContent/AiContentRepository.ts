@@ -22,4 +22,6 @@ export interface AiContentRepository {
   /** 人手確認ゲート(docs/adr/0007)で未確認のものを一覧する */
   findPendingVerification(limit: number): Promise<AiContent[]>;
   markVerified(id: string, verifiedBy: string): Promise<AiContent | null>;
+  /** 承認済み(isVerified=true)のコンテンツのみを種別で取得する。ホーム画面のタグ集計等で使う */
+  findVerifiedByContentType(contentType: AiContentType): Promise<AiContent[]>;
 }

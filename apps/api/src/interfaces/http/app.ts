@@ -9,6 +9,7 @@ import { healthRouter } from "./routes/health.js";
 import { legislatorsRouter } from "./routes/legislators.js";
 import { meetingsRouter } from "./routes/meetings.js";
 import { searchRouter } from "./routes/search.js";
+import { tagsRouter } from "./routes/tags.js";
 
 /**
  * publicなAPIエントリポイント。/api/v1配下に公開読み取り系を実装(Phase2〜)。
@@ -29,6 +30,7 @@ export function createApp(): Express {
   v1Router.use(meetingsRouter);
   v1Router.use(billsRouter);
   v1Router.use(searchRouter);
+  v1Router.use(tagsRouter);
   app.use("/api/v1", v1Router);
 
   app.use(adminAiContentsRouter);
