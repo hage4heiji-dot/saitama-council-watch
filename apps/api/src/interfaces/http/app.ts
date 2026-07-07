@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "../../config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { adminAiContentsRouter } from "./routes/adminAiContents.js";
+import { analysisRouter } from "./routes/analysis.js";
 import { billsRouter } from "./routes/bills.js";
 import { healthRouter } from "./routes/health.js";
 import { legislatorsRouter } from "./routes/legislators.js";
@@ -31,6 +32,7 @@ export function createApp(): Express {
   v1Router.use(billsRouter);
   v1Router.use(searchRouter);
   v1Router.use(tagsRouter);
+  v1Router.use(analysisRouter);
   app.use("/api/v1", v1Router);
 
   app.use(adminAiContentsRouter);

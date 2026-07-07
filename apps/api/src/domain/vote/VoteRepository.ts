@@ -1,4 +1,4 @@
-import type { VoteType, VoteWithLegislator } from "@saitama-council-watch/shared-types";
+import type { BillStatus, VoteType, VoteWithLegislator } from "@saitama-council-watch/shared-types";
 
 /**
  * ポート(interface)。実装はinfrastructure/db/postgres/repositories配下に置く
@@ -22,4 +22,16 @@ export interface VoteRepository {
   existsForAnyBill(billIds: string[]): Promise<boolean>;
   /** 議案詳細画面向け。議員名・会派名を併記して返す */
   findByBillId(billId: string): Promise<VoteWithLegislator[]>;
+  /** 議員×タグのクロス集計向け(docs/adr/0019)。全投票記録を議員・議案情報付きで返す */
+  findAllWithBillInfo(): Promise<VoteWithBillInfo[]>;
+}
+
+export interface VoteWithBillInfo {
+  legislatorId: string;
+  legislatorName: string;
+  factionName: string | null;
+  billId: string;
+  billSourceDocumentId: string;
+  billStatus: BillStatus;
+  voteType: VoteType;
 }

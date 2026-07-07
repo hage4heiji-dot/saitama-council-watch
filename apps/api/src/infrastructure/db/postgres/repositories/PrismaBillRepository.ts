@@ -3,7 +3,8 @@ import type { Bill, BillStatus } from "@saitama-council-watch/shared-types";
 import type { BillRepository, UpsertBillInput } from "../../../../domain/bill/BillRepository.js";
 import type { Page, PageQuery } from "../../../../domain/shared/Page.js";
 
-const PRISMA_TO_SHARED_STATUS: Record<PrismaBillStatus, BillStatus> = {
+/** 他リポジトリ(投票クロス集計等)からも参照するためexportする */
+export const PRISMA_TO_SHARED_STATUS: Record<PrismaBillStatus, BillStatus> = {
   SUBMITTED: "submitted",
   IN_DELIBERATION: "in_deliberation",
   PASSED: "passed",
