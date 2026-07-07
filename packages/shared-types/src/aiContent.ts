@@ -56,3 +56,9 @@ export const TagCountSchema = z.object({
   count: z.number().int().nonnegative(),
 });
 export type TagCount = z.infer<typeof TagCountSchema>;
+
+/** meetingIdを指定すると、その会期の議案のタグのみに絞って集計する(docs/adr/0018) */
+export const TagCountsQuerySchema = z.object({
+  meetingId: z.string().uuid().optional(),
+});
+export type TagCountsQuery = z.infer<typeof TagCountsQuerySchema>;

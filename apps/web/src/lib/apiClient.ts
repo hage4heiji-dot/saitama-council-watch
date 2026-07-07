@@ -36,7 +36,7 @@ export function fetchMeeting(id: string): Promise<Meeting | null> {
 }
 
 export function fetchBills(
-  params: { meetingId?: string; status?: BillStatus | undefined; limit?: number } = {},
+  params: { meetingId?: string; status?: BillStatus | undefined; tag?: string | undefined; limit?: number } = {},
 ): Promise<{ items: BillWithSource[]; nextCursor: string | null }> {
   const qs = new URLSearchParams();
   if (params.meetingId) {
@@ -45,16 +45,23 @@ export function fetchBills(
   if (params.status) {
     qs.set("status", params.status);
   }
+  if (params.tag) {
+    qs.set("tag", params.tag);
+  }
   qs.set("limit", String(params.limit ?? 50));
   return apiFetch(`/bills?${qs.toString()}`);
 }
 
-export function fetchTagCounts(): Promise<{ items: TagCount[] }> {
-  return apiFetch<{ items: TagCount[] }>("/tags").catch(() => ({ items: [] }));
+export function fetchTagCounts(meetingId?: string): Promise<{ items: TagCount[] }> {
+  const qs = meetingId ? `?meetingId=${encodeURIComponent(meetingId)}` : "";
+  return apiFetch<{ items: TagCount[] }>(`/tags${qs}`).catch(() => ({ items: [] }));
 }
 
-export function searchBills(q: string, limit = 20): Promise<SearchResponse> {
+export function searchBills(q: string, limit = 20, tag?: string): Promise<SearchResponse> {
   const qs = new URLSearchParams({ q, limit: String(limit) });
+  if (tag) {
+    qs.set("tag", tag);
+  }
   return apiFetch(`/search?${qs.toString()}`);
 }
 

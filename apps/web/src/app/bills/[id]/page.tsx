@@ -33,9 +33,9 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
             AI要約
           </div>
           <p className="whitespace-pre-wrap text-ink-primary">{bill.aiSummary}</p>
-          {bill.aiTags.length > 0 && (
+          {bill.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {bill.aiTags.map((tag) => (
+              {bill.tags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-sequential-100 px-3 py-1 text-xs text-ink-primary"

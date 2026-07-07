@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { BillStatus } from "@saitama-council-watch/shared-types";
+import type { BillStatus, Meeting } from "@saitama-council-watch/shared-types";
 import { fetchBills, fetchLegislators, fetchMeetings, fetchTagCounts } from "@/lib/apiClient";
 import { BILL_STATUS_LABELS, BILL_STATUS_ORDER } from "@/lib/billStatus";
 import { computeSessionProgress } from "@/lib/sessionProgress";
@@ -7,18 +7,27 @@ import { FactionBar } from "@/components/FactionBar";
 import { Meter } from "@/components/Meter";
 import { StatTile } from "@/components/StatTile";
 
-export default async function HomePage() {
-  // limitはAPIの上限(100)に合わせている。100件を超えたら集計専用の
-  // エンドポイントを別途用意すること(現状のデータ規模ではYAGNI)。
-  const [{ items: meetings }, { items: bills }, { items: legislators }, { items: tagCounts }] =
-    await Promise.all([
-      fetchMeetings(5),
-      fetchBills({ limit: 100 }),
-      fetchLegislators(),
-      fetchTagCounts(),
-    ]);
+/** 会期の開始日が新しい順(未取得はもっとも古い扱い)。DB取得順(id順)は暦日と無関係なため */
+function findLatestMeeting(meetings: Meeting[]): Meeting | null {
+  if (meetings.length === 0) {
+    return null;
+  }
+  return [...meetings].sort((a, b) => (b.startDate ?? "").localeCompare(a.startDate ?? ""))[0] ?? null;
+}
 
-  const latestMeeting = meetings[0] ?? null;
+export default async function HomePage() {
+  const { items: meetings } = await fetchMeetings(5);
+  const latestMeeting = findLatestMeeting(meetings);
+
+  // 議案の状況・タグ別件数は最新の会期のみを対象にする(過去の会期と合算しない)。
+  // limitはAPIの上限(100)に合わせている。1会期で100件を超えたら集計専用の
+  // エンドポイントを別途用意すること(現状のデータ規模ではYAGNI)。
+  const [{ items: bills }, { items: legislators }, { items: tagCounts }] = await Promise.all([
+    fetchBills(latestMeeting ? { meetingId: latestMeeting.id, limit: 100 } : { limit: 100 }),
+    fetchLegislators(),
+    fetchTagCounts(latestMeeting?.id),
+  ]);
+
   const sessionProgress =
     latestMeeting?.startDate && latestMeeting.endDate
       ? computeSessionProgress(latestMeeting.startDate, latestMeeting.endDate)
@@ -62,7 +71,10 @@ export default async function HomePage() {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-3 font-semibold">議案の状況(累計{bills.length}件)</h2>
+        <h2 className="mb-3 font-semibold">
+          議案の状況({latestMeeting ? `${latestMeeting.sessionName}、` : ""}
+          {bills.length}件)
+        </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {BILL_STATUS_ORDER.map((status) => (
             <StatTile
@@ -84,10 +96,17 @@ export default async function HomePage() {
 
       {tagCounts.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 font-semibold">議案のタグ別件数(AI要約承認済み分)</h2>
+          <h2 className="mb-3 font-semibold">
+            議案のタグ別件数({latestMeeting ? `${latestMeeting.sessionName}、` : ""}AI要約承認済み分)
+          </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {tagCounts.map((tagCount) => (
-              <StatTile key={tagCount.tag} label={tagCount.tag} value={tagCount.count} />
+              <StatTile
+                key={tagCount.tag}
+                label={tagCount.tag}
+                value={tagCount.count}
+                href={`/bills?tag=${encodeURIComponent(tagCount.tag)}`}
+              />
             ))}
           </div>
         </section>

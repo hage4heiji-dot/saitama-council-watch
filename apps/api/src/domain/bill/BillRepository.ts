@@ -17,7 +17,12 @@ export interface UpsertBillInput {
 export interface BillRepository {
   upsertByMeetingAndNumber(input: UpsertBillInput): Promise<Bill>;
   findPage(
-    query: PageQuery & { meetingId?: string | undefined; status?: BillStatus | undefined },
+    query: PageQuery & {
+      meetingId?: string | undefined;
+      status?: BillStatus | undefined;
+      /** タグ絞り込み等、事前に解決したsourceDocumentIdの集合で絞り込む(docs/adr/0018) */
+      sourceDocumentIds?: string[] | undefined;
+    },
   ): Promise<Page<Bill>>;
   findManyByIds(ids: string[]): Promise<Bill[]>;
   /** まだAI生成コンテンツが1件も作られていない議案を取得する(Phase3) */

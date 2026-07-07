@@ -2,6 +2,7 @@ import { BillListQuerySchema } from "@saitama-council-watch/shared-types";
 import { Router } from "express";
 import { attachSourceUrlToMany } from "../../../application/bills/attachSourceUrl.js";
 import { buildBillDetail } from "../../../application/bills/buildBillDetail.js";
+import { buildSourceDocumentTagsMap, sourceDocumentIdsForTag } from "../../../domain/aiContent/billTags.js";
 import { prisma } from "../../../infrastructure/db/postgres/prismaClient.js";
 import { PrismaAiContentRepository } from "../../../infrastructure/db/postgres/repositories/PrismaAiContentRepository.js";
 import { PrismaBillRepository } from "../../../infrastructure/db/postgres/repositories/PrismaBillRepository.js";
@@ -18,8 +19,12 @@ const voteRepository = new PrismaVoteRepository(prisma);
 billsRouter.get("/bills", async (req, res, next) => {
   try {
     const query = BillListQuerySchema.parse(req.query);
-    const page = await billRepository.findPage(query);
-    const items = await attachSourceUrlToMany(page.items, documentRepository);
+    const tagContents = await aiContentRepository.findVerifiedByContentType("tags");
+    const sourceDocumentIds = query.tag ? sourceDocumentIdsForTag(tagContents, query.tag) : undefined;
+
+    const page = await billRepository.findPage({ ...query, sourceDocumentIds });
+    const tagsBySourceDocumentId = buildSourceDocumentTagsMap(tagContents);
+    const items = await attachSourceUrlToMany(page.items, documentRepository, tagsBySourceDocumentId);
     res.json({ items, nextCursor: page.nextCursor });
   } catch (error) {
     next(error);
