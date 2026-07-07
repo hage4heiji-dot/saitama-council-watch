@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { fetchBillDetail } from "@/lib/apiClient";
+import { fetchBillDetail, fetchBillVotes } from "@/lib/apiClient";
 import { StatusBadge } from "@/components/StatusBadge";
+import { VoteBreakdown } from "@/components/VoteBreakdown";
 
 interface BillDetailPageProps {
   params: Promise<{ id: string }>;
@@ -12,6 +13,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   if (!bill) {
     notFound();
   }
+  const { items: votes } = await fetchBillVotes(id);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -65,6 +67,8 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
           この議案のAI要約はまだ確認・公開されていません。
         </p>
       )}
+
+      <VoteBreakdown votes={votes} />
 
       <a
         href={bill.sourceUrl}

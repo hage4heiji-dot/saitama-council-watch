@@ -79,6 +79,18 @@ export const VoteSchema = z.object({
 });
 export type Vote = z.infer<typeof VoteSchema>;
 
+/**
+ * 議案詳細画面での表決態度表示向けDTO(docs/adr/0017)。
+ * 議員名・会派名を併記することでVote単体より表示に適した形にする。
+ */
+export const VoteWithLegislatorSchema = z.object({
+  legislatorId: z.string().uuid(),
+  legislatorName: z.string(),
+  factionName: z.string().nullable(),
+  voteType: VoteTypeSchema,
+});
+export type VoteWithLegislator = z.infer<typeof VoteWithLegislatorSchema>;
+
 export const BudgetSchema = z.object({
   id: z.string().uuid(),
   fiscalYear: z.number().int(),

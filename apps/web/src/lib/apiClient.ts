@@ -7,6 +7,7 @@ import type {
   Legislator,
   Meeting,
   SearchResponse,
+  VoteWithLegislator,
 } from "@saitama-council-watch/shared-types";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api/v1";
@@ -54,6 +55,12 @@ export function searchBills(q: string, limit = 20): Promise<SearchResponse> {
 
 export function fetchBillDetail(id: string): Promise<BillDetail | null> {
   return apiFetch<BillDetail>(`/bills/${encodeURIComponent(id)}`).catch(() => null);
+}
+
+export function fetchBillVotes(id: string): Promise<{ items: VoteWithLegislator[] }> {
+  return apiFetch<{ items: VoteWithLegislator[] }>(`/bills/${encodeURIComponent(id)}/votes`).catch(() => ({
+    items: [],
+  }));
 }
 
 export type { Bill, BillWithSource, Legislator, Meeting };

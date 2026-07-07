@@ -4,6 +4,7 @@ import { scrapeBillsJob } from "./jobs/scrapeBills.js";
 import { scrapeLegislatorsJob } from "./jobs/scrapeLegislators.js";
 import { scrapeSessionScheduleJob } from "./jobs/scrapeSessionSchedule.js";
 import { syncBillDeliberationResultsJob } from "./jobs/syncBillDeliberationResults.js";
+import { syncBillVotesJob } from "./jobs/syncBillVotes.js";
 import { runJob } from "./runJob.js";
 import { disconnectPrisma } from "../infrastructure/db/postgres/prismaClient.js";
 
@@ -39,6 +40,11 @@ cron.schedule("0 19 * * *", () => {
 // 議案審議結果の同期(docs/adr/0016)。議案スクレイピング・会期予定表取り込みの後に実行する。
 cron.schedule("15 19 * * *", () => {
   void runJob("sync-bill-deliberation-results", syncBillDeliberationResultsJob);
+});
+
+// 議案表決態度の同期(docs/adr/0017)。議案の取り込み後に実行する。
+cron.schedule("20 19 * * *", () => {
+  void runJob("sync-bill-votes", syncBillVotesJob);
 });
 
 // AIコンテンツ生成(Phase3)。スクレイピング完了後、1日1回・少数ずつ処理する。
