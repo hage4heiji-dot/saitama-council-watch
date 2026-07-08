@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: "/analysis", label: "クロス集計" },
   { href: "/milestones", label: "年間マイルストーン" },
   { href: "/budget", label: "予算" },
+  { href: "/ordinances", label: "条例一覧" },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {

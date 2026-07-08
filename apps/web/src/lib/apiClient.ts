@@ -11,6 +11,7 @@ import type {
   LegislatorTagMatrix,
   Legislator,
   Meeting,
+  OrdinanceBill,
   SearchResponse,
   TagCount,
   VoteWithLegislator,
@@ -55,6 +56,10 @@ export function fetchBudgetFiscalYears(): Promise<{ items: number[] }> {
 
 export function fetchBudgets(fiscalYear: number): Promise<{ items: Budget[] }> {
   return apiFetch<{ items: Budget[] }>(`/budgets?fiscalYear=${fiscalYear}`).catch(() => ({ items: [] }));
+}
+
+export function fetchOrdinances(): Promise<{ items: OrdinanceBill[] }> {
+  return apiFetch<{ items: OrdinanceBill[] }>("/ordinances").catch(() => ({ items: [] }));
 }
 
 export function fetchBills(
