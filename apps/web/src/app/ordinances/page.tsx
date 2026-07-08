@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 export const metadata = { title: "条例一覧 | さいたま市議会ウォッチ" };
 
 interface OrdinancesPageProps {
-  searchParams: Promise<{ kind?: string }>;
+  searchParams: Promise<{ kind?: string; dissent?: string }>;
 }
 
 const KIND_LABELS: Record<OrdinanceBillKind, string> = {
@@ -21,16 +21,27 @@ function isOrdinanceBillKind(value: string): value is OrdinanceBillKind {
   return (KIND_ORDER as string[]).includes(value);
 }
 
-function hrefFor(kind: OrdinanceBillKind | undefined): string {
-  return kind ? `/ordinances?kind=${kind}` : "/ordinances";
+function hrefFor(options: { kind: OrdinanceBillKind | undefined; dissent: boolean }): string {
+  const params = new URLSearchParams();
+  if (options.kind) {
+    params.set("kind", options.kind);
+  }
+  if (options.dissent) {
+    params.set("dissent", "1");
+  }
+  const qs = params.toString();
+  return qs ? `/ordinances?${qs}` : "/ordinances";
 }
 
 export default async function OrdinancesPage({ searchParams }: OrdinancesPageProps) {
-  const { kind: rawKind } = await searchParams;
+  const { kind: rawKind, dissent: rawDissent } = await searchParams;
   const kind = rawKind && isOrdinanceBillKind(rawKind) ? rawKind : undefined;
+  const dissentOnly = rawDissent === "1";
 
   const { items: allItems } = await fetchOrdinances();
-  const items = kind ? allItems.filter((item) => item.kind === kind) : allItems;
+  const items = allItems
+    .filter((item) => !kind || item.kind === kind)
+    .filter((item) => !dissentOnly || (item.voteTally?.against ?? 0) > 0);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -39,9 +50,9 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
         条例の制定・改正・廃止に関する議案の一覧です({items.length}件)。取り込み開始(令和8年2月)より前に制定された条例の本来の制定日は分からないため、条例名ごとの現況一覧ではなく、議案そのものを表示しています。
       </p>
 
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
+      <div className="mb-3 flex flex-wrap gap-2 text-sm">
         <Link
-          href={hrefFor(undefined)}
+          href={hrefFor({ kind: undefined, dissent: dissentOnly })}
           className={`rounded-full border border-hairline px-3 py-1 ${!kind ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
         >
           すべて
@@ -49,12 +60,21 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
         {KIND_ORDER.map((k) => (
           <Link
             key={k}
-            href={hrefFor(k)}
+            href={hrefFor({ kind: k, dissent: dissentOnly })}
             className={`rounded-full border border-hairline px-3 py-1 ${kind === k ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
           >
             {KIND_LABELS[k]}
           </Link>
         ))}
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2 text-sm">
+        <Link
+          href={hrefFor({ kind, dissent: !dissentOnly })}
+          className={`rounded-full border border-hairline px-3 py-1 ${dissentOnly ? "bg-status-critical text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          反対票のあった議案のみ
+        </Link>
       </div>
 
       <ul className="divide-y divide-hairline">
@@ -66,11 +86,19 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
               </Link>
               <StatusBadge status={item.status} />
             </div>
-            <div className="mt-1 flex flex-wrap gap-3 text-sm text-ink-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-ink-muted">
               <span className="rounded-full border border-hairline px-2.5 py-0.5 text-xs text-ink-secondary">
                 {KIND_LABELS[item.kind]}
               </span>
               <span>{item.submittedDate ? `提出日: ${item.submittedDate}` : "提出日: 未取得"}</span>
+              {item.voteTally && (
+                <span className={item.voteTally.against > 0 ? "font-medium text-status-critical" : "text-ink-muted"}>
+                  賛成{item.voteTally.for}・反対{item.voteTally.against}
+                  {item.voteTally.absent + item.voteTally.abstain > 0
+                    ? `・欠席等${item.voteTally.absent + item.voteTally.abstain}`
+                    : ""}
+                </span>
+              )}
               <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="text-series-1 hover:underline">
                 原本PDF
               </a>
