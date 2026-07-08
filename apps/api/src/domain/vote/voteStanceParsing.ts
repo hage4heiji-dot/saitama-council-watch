@@ -1,4 +1,5 @@
 import type { VoteType } from "@saitama-council-watch/shared-types";
+import { clusterByX, nearestCluster } from "../shared/xClustering.js";
 
 /**
  * さいたま市議会「議案に対する表決態度」PDFの解析(docs/adr/0017)。
@@ -105,27 +106,6 @@ function extractRosterItems(items: PositionedTextItem[]): PositionedTextItem[] {
     roster.push(...pageItems.filter((item) => item.y > firstBillItem.y));
   }
   return roster;
-}
-
-/** x座標の値を、間隔(gapThreshold)より離れた点で区切ってクラスタリングする */
-function clusterByX(xs: number[], gapThreshold: number): number[] {
-  const sorted = [...xs].sort((a, b) => a - b);
-  const clusters: number[][] = [];
-  for (const x of sorted) {
-    const last = clusters[clusters.length - 1];
-    if (last && x - last[last.length - 1]! <= gapThreshold) {
-      last.push(x);
-    } else {
-      clusters.push([x]);
-    }
-  }
-  return clusters.map((cluster) => cluster.reduce((sum, v) => sum + v, 0) / cluster.length);
-}
-
-function nearestCluster(x: number, clusters: number[]): number {
-  return clusters.reduce((best, candidate) =>
-    Math.abs(candidate - x) < Math.abs(best - x) ? candidate : best,
-  );
 }
 
 /**

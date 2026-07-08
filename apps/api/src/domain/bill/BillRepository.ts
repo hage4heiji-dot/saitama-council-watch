@@ -32,4 +32,6 @@ export interface BillRepository {
   findAllByMeetingId(meetingId: string): Promise<Bill[]>;
   /** 審議結果同期(docs/adr/0016)によるステータス更新専用。存在しないIDの場合はnullを返す */
   updateStatus(id: string, status: BillStatus): Promise<Bill | null>;
+  /** タイトルに指定した文字列を含む議案を全件取得する(予算議案の抽出、docs/adr/0024) */
+  findByTitleContaining(substring: string): Promise<Bill[]>;
 }

@@ -97,6 +97,8 @@ export type VoteWithLegislator = z.infer<typeof VoteWithLegislatorSchema>;
 export const BudgetSchema = z.object({
   id: z.string().uuid(),
   fiscalYear: z.number().int(),
+  /** 一般会計/各特別会計の別(docs/adr/0024) */
+  accountName: z.string().min(1),
   category: z.string().min(1),
   amount: z.number().nonnegative(),
   relatedBillId: z.string().uuid().nullable(),
