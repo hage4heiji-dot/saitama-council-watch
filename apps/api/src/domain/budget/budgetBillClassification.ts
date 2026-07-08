@@ -1,3 +1,5 @@
+import { unwrapSenketsuTitle } from "../shared/senketsuTitle.js";
+
 /**
  * 予算議案(Bill.title)から、会計名・会計年度・補正号数を抽出し、
  * v1のスコープ(普通会計=一般会計+特別会計)対象かどうかを判定する(docs/adr/0024)。
@@ -19,7 +21,6 @@ export interface ClassifiedBudgetBill {
   amendmentNumber: number | null;
 }
 
-const SENKETSU_WRAPPER_PATTERN = /^専決処分の報告及び承認を求めることについて[（(](.+)[）)]$/;
 const BUDGET_TITLE_PATTERN =
   /^令和(?<eraYear>[0-9０-９]+)年度さいたま市(?<accountName>.+?)(?:当初予算|補正予算|予算)(?:[（(]第(?<amendmentNumber>[0-9０-９]+)号[）)])?$/;
 
@@ -36,8 +37,7 @@ function isEnterpriseAccount(accountName: string): boolean {
  * 予算議案でない場合、または公営企業会計(v1のスコープ外)の場合はnullを返す(捏造しない)。
  */
 export function classifyBudgetBillTitle(title: string): ClassifiedBudgetBill | null {
-  const senketsuMatch = SENKETSU_WRAPPER_PATTERN.exec(title);
-  const targetTitle = senketsuMatch?.[1] ?? title;
+  const targetTitle = unwrapSenketsuTitle(title);
 
   const match = BUDGET_TITLE_PATTERN.exec(targetTitle);
   const { eraYear, accountName, amendmentNumber } = match?.groups ?? {};

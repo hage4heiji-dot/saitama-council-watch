@@ -70,6 +70,20 @@ export const OrdinanceSchema = z.object({
 });
 export type Ordinance = z.infer<typeof OrdinanceSchema>;
 
+/**
+ * 「条例一覧」v1向け(docs/adr/0025)。上記の`Ordinance`(条例名ごとに現在の状態を
+ * 追跡するレジストリ)とは別物で、条例に関する議案(Bill)をタイトルパターンで
+ * 種別分類しただけの表示用DTO。取り込み開始(令和8年2月)より前の制定日は
+ * 分からないため、レジストリ化はせず議案そのものの実データのみを表示する。
+ */
+export const OrdinanceBillKindSchema = z.enum(["enactment", "amendment", "abolition"]);
+export type OrdinanceBillKind = z.infer<typeof OrdinanceBillKindSchema>;
+
+export const OrdinanceBillSchema = BillWithSourceSchema.extend({
+  kind: OrdinanceBillKindSchema,
+});
+export type OrdinanceBill = z.infer<typeof OrdinanceBillSchema>;
+
 export const VoteTypeSchema = z.enum(["for", "against", "absent", "abstain"]);
 export type VoteType = z.infer<typeof VoteTypeSchema>;
 
