@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { generateAiContentJob } from "./jobs/generateAiContent.js";
+import { ingestExpenditureBudgetJob } from "./jobs/ingestExpenditureBudget.js";
 import { scrapeBillsJob } from "./jobs/scrapeBills.js";
 import { scrapeCommitteeScheduleJob } from "./jobs/scrapeCommitteeSchedule.js";
 import { scrapeLegislatorsJob } from "./jobs/scrapeLegislators.js";
@@ -42,6 +43,12 @@ cron.schedule("35 18 * * *", () => {
 // 議員・会派の取り込み(Phase2)。更新頻度は低いため1日1回で十分。
 cron.schedule("0 19 * * *", () => {
   void runJob("scrape-legislators", scrapeLegislatorsJob);
+});
+
+// 予算議案(既存Bill/Document)から歳出の款別内訳を取り込む(docs/adr/0024)。
+// 新規スクレイピングはしないため、議案スクレイピングの後であればよい。
+cron.schedule("40 18 * * *", () => {
+  void runJob("ingest-expenditure-budget", ingestExpenditureBudgetJob);
 });
 
 // 議案審議結果の同期(docs/adr/0016)。議案スクレイピング・会期予定表取り込みの後に実行する。

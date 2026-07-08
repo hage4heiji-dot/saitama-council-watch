@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import pdfParse from "pdf-parse";
 
 export interface PositionedTextItem {
@@ -48,4 +50,14 @@ export async function extractPositionedPdfText(buffer: Buffer): Promise<Position
   });
 
   return items;
+}
+
+/** ディスク保存済みのPDF原本から座標付きテキストを抽出する版(docs/adr/0024 予算款別内訳) */
+export async function extractStoredPositionedPdfText(
+  rawStorageRoot: string,
+  storagePath: string,
+): Promise<PositionedTextItem[]> {
+  const absolutePath = resolve(rawStorageRoot, storagePath);
+  const buffer = await readFile(absolutePath);
+  return extractPositionedPdfText(buffer);
 }

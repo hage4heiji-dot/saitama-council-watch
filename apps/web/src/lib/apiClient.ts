@@ -4,6 +4,7 @@ import type {
   BillDetail,
   BillStatus,
   BillWithSource,
+  Budget,
   CommitteeMeeting,
   FactionTagMatrix,
   LegislatorDetail,
@@ -46,6 +47,14 @@ export function fetchMeeting(id: string): Promise<Meeting | null> {
 
 export function fetchCommitteeMeetings(): Promise<{ items: CommitteeMeeting[] }> {
   return apiFetch<{ items: CommitteeMeeting[] }>("/committee-meetings").catch(() => ({ items: [] }));
+}
+
+export function fetchBudgetFiscalYears(): Promise<{ items: number[] }> {
+  return apiFetch<{ items: number[] }>("/budgets/fiscal-years").catch(() => ({ items: [] }));
+}
+
+export function fetchBudgets(fiscalYear: number): Promise<{ items: Budget[] }> {
+  return apiFetch<{ items: Budget[] }>(`/budgets?fiscalYear=${fiscalYear}`).catch(() => ({ items: [] }));
 }
 
 export function fetchBills(

@@ -119,6 +119,14 @@ export class PrismaBillRepository implements BillRepository {
     return rows.map(toDomain);
   }
 
+  async findByTitleContaining(substring: string): Promise<Bill[]> {
+    const rows = await this.client.bill.findMany({
+      where: { title: { contains: substring } },
+      orderBy: { submittedDate: "asc" },
+    });
+    return rows.map(toDomain);
+  }
+
   async updateStatus(id: string, status: BillStatus): Promise<Bill | null> {
     // 対象が存在しない場合にPrismaが「レコードが見つからない」エラーをログ出力しないよう、
     // 事前にfindUniqueで存在確認する(PrismaMeetingRepository.updateSessionPeriodと同じ方針)。

@@ -215,14 +215,19 @@ model Vote {
 model Budget {
   id            String  @id @default(uuid())
   fiscalYear    Int     @map("fiscal_year")
+  // 一般会計/各特別会計の別。同じ款名(例:「総務費」)が会計をまたいで重複しうるため、
+  // (fiscalYear, accountName, category) で一意にする(docs/adr/0024)。
+  accountName   String  @map("account_name")
   category      String
+  // 款番号(原本の表記通り。表示順の並べ替えに使う。docs/adr/0024)
+  categoryOrder Int     @map("category_order")
   amount        Decimal @db.Decimal(14, 0)
   relatedBillId String? @map("related_bill_id")
   description   String
 
   relatedBill Bill? @relation(fields: [relatedBillId], references: [id])
 
-  @@index([fiscalYear])
+  @@unique([fiscalYear, accountName, category])
   @@map("budgets")
 }
 

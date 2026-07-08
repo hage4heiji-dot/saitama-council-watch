@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { adminAiContentsRouter } from "./routes/adminAiContents.js";
 import { analysisRouter } from "./routes/analysis.js";
 import { billsRouter } from "./routes/bills.js";
+import { budgetsRouter } from "./routes/budgets.js";
 import { healthRouter } from "./routes/health.js";
 import { legislatorsRouter } from "./routes/legislators.js";
 import { meetingsRouter } from "./routes/meetings.js";
@@ -30,6 +31,7 @@ export function createApp(): Express {
   v1Router.use(legislatorsRouter);
   v1Router.use(meetingsRouter);
   v1Router.use(billsRouter);
+  v1Router.use(budgetsRouter);
   v1Router.use(searchRouter);
   v1Router.use(tagsRouter);
   v1Router.use(analysisRouter);
