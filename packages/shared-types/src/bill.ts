@@ -79,8 +79,22 @@ export type Ordinance = z.infer<typeof OrdinanceSchema>;
 export const OrdinanceBillKindSchema = z.enum(["enactment", "amendment", "abolition"]);
 export type OrdinanceBillKind = z.infer<typeof OrdinanceBillKindSchema>;
 
+/**
+ * 議案の可決/否決だけでは会派間の賛否の分かれ方が見えないため、表決態度データ
+ * (docs/adr/0017)が取れている議案には賛否の内訳を併記する(取れていない議案はnull。
+ * 表決態度PDFは会期内の一部の議案しか対象にしないため、全件には存在しない)。
+ */
+export const VoteTallySchema = z.object({
+  for: z.number().int().nonnegative(),
+  against: z.number().int().nonnegative(),
+  absent: z.number().int().nonnegative(),
+  abstain: z.number().int().nonnegative(),
+});
+export type VoteTally = z.infer<typeof VoteTallySchema>;
+
 export const OrdinanceBillSchema = BillWithSourceSchema.extend({
   kind: OrdinanceBillKindSchema,
+  voteTally: VoteTallySchema.nullable(),
 });
 export type OrdinanceBill = z.infer<typeof OrdinanceBillSchema>;
 
