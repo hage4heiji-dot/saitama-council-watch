@@ -45,6 +45,18 @@ enum OrdinanceStatus {
   ABOLISHED
 }
 
+enum PetitionStatus {
+  // 請願文書表(全文)はあるが、まだ請願審議結果一覧に載っていない(審議中)
+  PENDING
+  ADOPTED // 採択
+  REJECTED // 不採択
+  WITHDRAWN // 取下げ
+  CARRIED_OVER // 継続審査
+  // 審議結果一覧に載っているが、既知の結果文言(採択/不採択/取下げ/継続審査)と一致しない
+  // (捏造を避けるため、docs/adr/0026)
+  UNCONFIRMED
+}
+
 enum VoteType {
   FOR
   AGAINST
@@ -79,10 +91,10 @@ enum BatchJobStatus {
 }
 
 model Faction {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   foundedDate DateTime? @map("founded_date") @db.Date
-  isActive    Boolean  @default(true) @map("is_active")
+  isActive    Boolean   @default(true) @map("is_active")
 
   legislatorHistory LegislatorFactionHistory[]
 
@@ -91,15 +103,16 @@ model Faction {
 }
 
 model Legislator {
-  id                String    @id @default(uuid())
-  name              String
-  nameKana          String    @map("name_kana")
-  firstElectedDate  DateTime? @map("first_elected_date") @db.Date
-  isActive          Boolean   @default(true) @map("is_active")
-  profileUrl        String?   @map("profile_url")
+  id               String    @id @default(uuid())
+  name             String
+  nameKana         String    @map("name_kana")
+  firstElectedDate DateTime? @map("first_elected_date") @db.Date
+  isActive         Boolean   @default(true) @map("is_active")
+  profileUrl       String?   @map("profile_url")
 
-  factionHistory LegislatorFactionHistory[]
-  votes          Vote[]
+  factionHistory      LegislatorFactionHistory[]
+  votes               Vote[]
+  petitionIntroducers PetitionIntroducer[]
 
   // スクレイピング時の自然キー(プロフィールページURL)。手動追加データはnull許容のまま。
   @@unique([profileUrl])
@@ -135,6 +148,7 @@ model Meeting {
 
   bills             Bill[]
   committeeMeetings CommitteeMeeting[]
+  petitions         Petition[]
 
   @@unique([sessionName, meetingType])
   @@map("meetings")
@@ -172,8 +186,8 @@ model Bill {
   status           BillStatus @default(SUBMITTED)
   sourceDocumentId String     @map("source_document_id")
 
-  meeting        Meeting    @relation(fields: [meetingId], references: [id])
-  sourceDocument Document   @relation(fields: [sourceDocumentId], references: [id])
+  meeting        Meeting     @relation(fields: [meetingId], references: [id])
+  sourceDocument Document    @relation(fields: [sourceDocumentId], references: [id])
   votes          Vote[]
   ordinances     Ordinance[]
   budgets        Budget[]
@@ -196,6 +210,47 @@ model Ordinance {
 
   @@index([sourceDocumentId])
   @@map("ordinances")
+}
+
+// 請願(docs/adr/0026)。原文(要旨)まで保持する。紹介議員は複数人つきうるため
+// PetitionIntroducerで多対多にする(実データで複数人の例を確認済み)。
+model Petition {
+  id               String         @id @default(uuid())
+  meetingId        String         @map("meeting_id")
+  // 会計年度内でリセットされることがある(実データで確認済み)ため、
+  // (meetingId, petitionNumber)で一意にする
+  petitionNumber   String         @map("petition_number")
+  title            String
+  receivedDate     DateTime?      @map("received_date") @db.Date
+  // 住所は原本でも伏字のため保持しない。氏名・団体名のみ
+  petitionerName   String         @map("petitioner_name")
+  committeeName    String?        @map("committee_name")
+  summary          String
+  status           PetitionStatus @default(PENDING)
+  decidedDate      DateTime?      @map("decided_date") @db.Date
+  sourceDocumentId String         @map("source_document_id")
+
+  meeting        Meeting              @relation(fields: [meetingId], references: [id])
+  sourceDocument Document             @relation(fields: [sourceDocumentId], references: [id])
+  introducers    PetitionIntroducer[]
+
+  @@unique([meetingId, petitionNumber])
+  @@index([sourceDocumentId])
+  @@map("petitions")
+}
+
+model PetitionIntroducer {
+  id           String  @id @default(uuid())
+  petitionId   String  @map("petition_id")
+  legislatorId String? @map("legislator_id")
+  // 原本の表記(捏造しない)。既存Legislatorと一致しない場合はlegislatorIdがnullのまま残る
+  rawName      String  @map("raw_name")
+
+  petition   Petition    @relation(fields: [petitionId], references: [id], onDelete: Cascade)
+  legislator Legislator? @relation(fields: [legislatorId], references: [id])
+
+  @@unique([petitionId, rawName])
+  @@map("petition_introducers")
 }
 
 model Vote {
@@ -241,9 +296,10 @@ model Document {
   version     Int          @default(1)
   fetchedAt   DateTime     @map("fetched_at")
 
-  bills       Bill[]
-  ordinances  Ordinance[]
-  aiContents  AiContent[]
+  bills      Bill[]
+  ordinances Ordinance[]
+  aiContents AiContent[]
+  petitions  Petition[]
 
   @@unique([sourceUrl, version])
   @@index([checksum])
@@ -302,13 +358,13 @@ model NotificationSetting {
 
 // バッチジョブ実行履歴。ソロ運用における唯一の観測手段(docs/design/01-basic-design.md §7)。
 model BatchJobRun {
-  id               String          @id @default(uuid())
-  jobName          String          @map("job_name")
-  startedAt        DateTime        @map("started_at")
-  finishedAt       DateTime?        @map("finished_at")
-  status           BatchJobStatus  @default(RUNNING)
-  errorMessage     String?         @map("error_message")
-  recordsProcessed Int             @default(0) @map("records_processed")
+  id               String         @id @default(uuid())
+  jobName          String         @map("job_name")
+  startedAt        DateTime       @map("started_at")
+  finishedAt       DateTime?      @map("finished_at")
+  status           BatchJobStatus @default(RUNNING)
+  errorMessage     String?        @map("error_message")
+  recordsProcessed Int            @default(0) @map("records_processed")
 
   @@index([jobName, startedAt])
   @@map("batch_job_runs")

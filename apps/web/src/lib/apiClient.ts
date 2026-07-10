@@ -12,6 +12,7 @@ import type {
   Legislator,
   Meeting,
   OrdinanceBill,
+  PetitionWithSource,
   SearchResponse,
   TagCount,
   VoteWithLegislator,
@@ -60,6 +61,16 @@ export function fetchBudgets(fiscalYear: number): Promise<{ items: Budget[] }> {
 
 export function fetchOrdinances(): Promise<{ items: OrdinanceBill[] }> {
   return apiFetch<{ items: OrdinanceBill[] }>("/ordinances").catch(() => ({ items: [] }));
+}
+
+export function fetchPetitions(): Promise<{ items: PetitionWithSource[] }> {
+  return apiFetch<{ items: PetitionWithSource[] }>("/petitions").catch(() => ({ items: [] }));
+}
+
+export function fetchLegislatorPetitions(legislatorId: string): Promise<{ items: PetitionWithSource[] }> {
+  return apiFetch<{ items: PetitionWithSource[] }>(
+    `/legislators/${encodeURIComponent(legislatorId)}/petitions`,
+  ).catch(() => ({ items: [] }));
 }
 
 export function fetchBills(

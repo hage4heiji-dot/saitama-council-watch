@@ -20,7 +20,8 @@
     "sync:bill-status": "tsx --env-file=.env src/batch/jobs/syncBillDeliberationResults.ts",
     "sync:bill-votes": "tsx --env-file=.env src/batch/jobs/syncBillVotes.ts",
     "generate:ai-content": "tsx --env-file=.env src/batch/jobs/generateAiContent.ts",
-    "ingest:expenditure-budget": "tsx --env-file=.env src/batch/jobs/ingestExpenditureBudget.ts"
+    "ingest:expenditure-budget": "tsx --env-file=.env src/batch/jobs/ingestExpenditureBudget.ts",
+    "ingest:petitions": "tsx --env-file=.env src/batch/jobs/ingestPetitions.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
