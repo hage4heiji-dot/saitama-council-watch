@@ -20,23 +20,36 @@ async function waitForPoliteInterval(): Promise<void> {
   }
 }
 
+// 一時的なサーバーエラー(実データで確認済み: 同一URLへの再取得で200になるケースがある)。
+// 恒久的なエラー(404等)は即座に投げ、無関係なリトライで相手サイトへ負荷をかけない。
+const TRANSIENT_STATUS_CODES = new Set([502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+const RETRY_BACKOFF_MS = 3000;
+
 export async function politeFetch(url: string): Promise<FetchedResource> {
-  await waitForPoliteInterval();
-  lastRequestAt = Date.now();
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    await waitForPoliteInterval();
+    lastRequestAt = Date.now();
 
-  const response = await fetch(url, {
-    headers: { "User-Agent": env.SCRAPER_USER_AGENT },
-  });
+    const response = await fetch(url, {
+      headers: { "User-Agent": env.SCRAPER_USER_AGENT },
+    });
 
-  if (!response.ok) {
-    throw new Error(`スクレイピング先の応答がエラーでした: ${response.status} ${url}`);
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        contentType: response.headers.get("content-type"),
+      };
+    }
+
+    const isLastAttempt = attempt === MAX_ATTEMPTS;
+    if (!TRANSIENT_STATUS_CODES.has(response.status) || isLastAttempt) {
+      throw new Error(`スクレイピング先の応答がエラーでした: ${response.status} ${url}`);
+    }
+    await sleep(RETRY_BACKOFF_MS * attempt);
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return {
-    buffer: Buffer.from(arrayBuffer),
-    contentType: response.headers.get("content-type"),
-  };
+  throw new Error(`スクレイピング先の応答がエラーでした(到達しないはずの分岐): ${url}`);
 }
 
 export interface FormPostResult extends FetchedResource {
