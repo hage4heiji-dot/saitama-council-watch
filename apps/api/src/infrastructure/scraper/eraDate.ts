@@ -44,7 +44,17 @@ export function pad2(value: number): string {
 
 const FULL_WIDTH_DIGITS = "０１２３４５６７８９";
 
-/** 半角数字を全角数字に変換する(資料検索システムのフォルダ名は全角表記のため) */
+/**
+ * 半角数字を全角数字に変換する(資料検索システムのフォルダ名は全角表記のため)。
+ * ただし12月のフォルダのみ実データで確認する限り「12月定例会」と半角のまま
+ * (他の月は「２月」「６月」「９月」のように1文字の全角、年も「令和８年」のように
+ * 1桁は全角)表記されているため、2桁の値は全角変換しない(捏造しない: 未確認の
+ * 2桁表記を推測で全角化しない)。
+ */
 export function toFullWidthDigits(value: number): string {
-  return String(value).replace(/[0-9]/g, (digit) => FULL_WIDTH_DIGITS[Number(digit)] ?? digit);
+  const text = String(value);
+  if (text.length >= 2) {
+    return text;
+  }
+  return text.replace(/[0-9]/g, (digit) => FULL_WIDTH_DIGITS[Number(digit)] ?? digit);
 }
