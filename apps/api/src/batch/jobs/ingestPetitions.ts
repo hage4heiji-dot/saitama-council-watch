@@ -23,7 +23,9 @@ export async function ingestPetitionsJob(): Promise<number> {
     now: new Date(),
   });
 
-  console.warn(`ingest-petitions: meetings=${result.meetingsProcessed} petitionsUpserted=${result.petitionsUpserted}`);
+  console.warn(
+    `ingest-petitions: meetings=${result.meetingsProcessed} petitionsUpserted=${result.petitionsUpserted} lateResultsResolved=${result.lateResultsResolved}`,
+  );
   return result.petitionsUpserted;
 }
 
