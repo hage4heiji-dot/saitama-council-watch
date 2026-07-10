@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 export const metadata = { title: "条例一覧 | さいたま市議会ウォッチ" };
 
 interface OrdinancesPageProps {
-  searchParams: Promise<{ kind?: string; dissent?: string }>;
+  searchParams: Promise<{ kind?: string; dissent?: string; sort?: string }>;
 }
 
 const KIND_LABELS: Record<OrdinanceBillKind, string> = {
@@ -21,7 +21,7 @@ function isOrdinanceBillKind(value: string): value is OrdinanceBillKind {
   return (KIND_ORDER as string[]).includes(value);
 }
 
-function hrefFor(options: { kind: OrdinanceBillKind | undefined; dissent: boolean }): string {
+function hrefFor(options: { kind: OrdinanceBillKind | undefined; dissent: boolean; sort: boolean }): string {
   const params = new URLSearchParams();
   if (options.kind) {
     params.set("kind", options.kind);
@@ -29,19 +29,24 @@ function hrefFor(options: { kind: OrdinanceBillKind | undefined; dissent: boolea
   if (options.dissent) {
     params.set("dissent", "1");
   }
+  if (options.sort) {
+    params.set("sort", "asc");
+  }
   const qs = params.toString();
   return qs ? `/ordinances?${qs}` : "/ordinances";
 }
 
 export default async function OrdinancesPage({ searchParams }: OrdinancesPageProps) {
-  const { kind: rawKind, dissent: rawDissent } = await searchParams;
+  const { kind: rawKind, dissent: rawDissent, sort: rawSort } = await searchParams;
   const kind = rawKind && isOrdinanceBillKind(rawKind) ? rawKind : undefined;
   const dissentOnly = rawDissent === "1";
+  const ascending = rawSort === "asc";
 
   const { items: allItems } = await fetchOrdinances();
-  const items = allItems
+  const filtered = allItems
     .filter((item) => !kind || item.kind === kind)
     .filter((item) => !dissentOnly || (item.voteTally?.against ?? 0) > 0);
+  const items = ascending ? [...filtered].reverse() : filtered;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -52,7 +57,7 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
 
       <div className="mb-3 flex flex-wrap gap-2 text-sm">
         <Link
-          href={hrefFor({ kind: undefined, dissent: dissentOnly })}
+          href={hrefFor({ kind: undefined, dissent: dissentOnly, sort: ascending })}
           className={`rounded-full border border-hairline px-3 py-1 ${!kind ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
         >
           すべて
@@ -60,7 +65,7 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
         {KIND_ORDER.map((k) => (
           <Link
             key={k}
-            href={hrefFor({ kind: k, dissent: dissentOnly })}
+            href={hrefFor({ kind: k, dissent: dissentOnly, sort: ascending })}
             className={`rounded-full border border-hairline px-3 py-1 ${kind === k ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
           >
             {KIND_LABELS[k]}
@@ -68,12 +73,27 @@ export default async function OrdinancesPage({ searchParams }: OrdinancesPagePro
         ))}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
+      <div className="mb-3 flex flex-wrap gap-2 text-sm">
         <Link
-          href={hrefFor({ kind, dissent: !dissentOnly })}
+          href={hrefFor({ kind, dissent: !dissentOnly, sort: ascending })}
           className={`rounded-full border border-hairline px-3 py-1 ${dissentOnly ? "bg-status-critical text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
         >
           反対票のあった議案のみ
+        </Link>
+      </div>
+
+      <div className="mb-6 flex gap-2 text-sm">
+        <Link
+          href={hrefFor({ kind, dissent: dissentOnly, sort: false })}
+          className={`rounded-full border border-hairline px-3 py-1 ${!ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          新しい順
+        </Link>
+        <Link
+          href={hrefFor({ kind, dissent: dissentOnly, sort: true })}
+          className={`rounded-full border border-hairline px-3 py-1 ${ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          古い順
         </Link>
       </div>
 
