@@ -109,4 +109,22 @@ export class PrismaPetitionRepository implements PetitionRepository {
     });
     return rows.map(toDomain);
   }
+
+  async findPendingByPetitionNumber(petitionNumber: string): Promise<Petition[]> {
+    const rows = await this.client.petition.findMany({
+      where: { petitionNumber, status: "PENDING" },
+      include: { introducers: true },
+    });
+    return rows.map(toDomain);
+  }
+
+  async updateResult(petitionId: string, status: PetitionStatus, decidedDate: string | null): Promise<void> {
+    await this.client.petition.update({
+      where: { id: petitionId },
+      data: {
+        status: SHARED_TO_PRISMA_STATUS[status],
+        decidedDate: decidedDate ? new Date(decidedDate) : null,
+      },
+    });
+  }
 }

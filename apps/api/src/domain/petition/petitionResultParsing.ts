@@ -12,7 +12,12 @@ export interface ParsedPetitionResult {
   petitionNumber: string;
   /** 実データにある文言をそのまま保持する(捏造しない) */
   resultText: string;
-  decidedDate: string;
+  /**
+   * 継続審査(継続審議)は次回以降の会期へ結論を持ち越すため、この時点ではまだ
+   * 議決日が存在しない(実データで確認済み: 該当請願が結果一覧の末尾にあり、
+   * 議決日の行自体が無い)。このためnullを許容する。
+   */
+  decidedDate: string | null;
 }
 
 const RESULT_KEYWORDS = ["採択", "不採択", "取下げ", "継続審査", "継続審議"];
@@ -80,10 +85,15 @@ export function parsePetitionResultsList(rawText: string): ParsedPetitionResult[
       break;
     }
 
+    // 議決日(年行+月日行)。継続審査等、まだ議決日が無い場合は行自体が存在しない
+    // (実データで確認済み。結果一覧の末尾にそのまま結果キーワードだけが現れる)。
     const decidedYearLine = lines[cursor + 1];
     const decidedMonthDayLine = lines[cursor + 2];
-    const decidedDate = decidedYearLine && decidedMonthDayLine ? parseIsoDate(decidedYearLine, decidedMonthDayLine) : null;
-    if (!decidedDate) {
+    const hasTrailingDateLines = decidedYearLine !== undefined && decidedMonthDayLine !== undefined;
+    const decidedDate = hasTrailingDateLines ? parseIsoDate(decidedYearLine, decidedMonthDayLine) : null;
+    if (hasTrailingDateLines && !decidedDate) {
+      // 議決日の行はあるが既知の書式で解釈できない(想定外)。以降の行の対応がずれる
+      // おそれがあるため、これ以上は解決しない(捏造しない)。
       break;
     }
 
@@ -93,7 +103,7 @@ export function parsePetitionResultsList(rawText: string): ParsedPetitionResult[
       decidedDate,
     });
 
-    i = cursor + 3;
+    i = hasTrailingDateLines ? cursor + 3 : lines.length;
   }
 
   return results;

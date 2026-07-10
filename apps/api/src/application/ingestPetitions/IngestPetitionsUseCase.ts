@@ -23,6 +23,7 @@ export interface IngestPetitionsDeps {
 export interface IngestPetitionsResult {
   meetingsProcessed: number;
   petitionsUpserted: number;
+  lateResultsResolved: number;
 }
 
 /**
@@ -31,14 +32,22 @@ export interface IngestPetitionsResult {
  *
  * 既に取り込み済みで、かつ審議中(pending)の請願が残っていない会期は
  * 再スクレイピングの必要がないためスキップする(docs/adr/0016 審議結果同期と同じ方針)。
+ *
+ * 請願は受理された会期と、実際に議決される会期がずれることがある(実データで確認済み:
+ * 会期末近くに受理された請願が、次の定例会の審議結果一覧で議決されるケース)。
+ * このため会期は受理日の古い順に処理し、後続の会期の結果一覧に載っている「自分の
+ * 詳細文書表には無い請願番号」については、過去の会期でpendingのまま残っている
+ * 同番号の請願を検索して結果のみ反映する。
  */
 export async function ingestPetitions(deps: IngestPetitionsDeps): Promise<IngestPetitionsResult> {
-  const meetings = await deps.meetingRepository.findConcludedPlenarySessions(deps.now);
+  const meetingsDescending = await deps.meetingRepository.findConcludedPlenarySessions(deps.now);
+  const meetings = [...meetingsDescending].sort((a, b) => (a.endDate ?? "").localeCompare(b.endDate ?? ""));
   const legislators = await deps.legislatorRepository.findAll();
   const knownLegislators = legislators.map((legislator) => ({ id: legislator.id, name: legislator.name }));
 
   let meetingsProcessed = 0;
   let petitionsUpserted = 0;
+  let lateResultsResolved = 0;
 
   for (const meeting of meetings) {
     const sessionCore = parseSessionCore(meeting.sessionName);
@@ -129,7 +138,21 @@ export async function ingestPetitions(deps: IngestPetitionsDeps): Promise<Ingest
       await deps.petitionRepository.upsertMany(upserts);
       petitionsUpserted += upserts.length;
     }
+
+    for (const [petitionNumber, result] of resultsByNumber) {
+      if (detailsByNumber.has(petitionNumber)) {
+        continue;
+      }
+      const status = mapPetitionResultToStatus(result.resultText) ?? "unconfirmed";
+      const candidates = await deps.petitionRepository.findPendingByPetitionNumber(petitionNumber);
+      if (candidates.length !== 1) {
+        // 該当なし、または同番号のpendingが複数あって曖昧な場合は反映しない(捏造しない)。
+        continue;
+      }
+      await deps.petitionRepository.updateResult(candidates[0]!.id, status, result.decidedDate);
+      lateResultsResolved += 1;
+    }
   }
 
-  return { meetingsProcessed, petitionsUpserted };
+  return { meetingsProcessed, petitionsUpserted, lateResultsResolved };
 }
