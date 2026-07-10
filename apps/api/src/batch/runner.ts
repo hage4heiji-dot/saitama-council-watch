@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { generateAiContentJob } from "./jobs/generateAiContent.js";
 import { ingestExpenditureBudgetJob } from "./jobs/ingestExpenditureBudget.js";
+import { ingestPetitionsJob } from "./jobs/ingestPetitions.js";
 import { scrapeBillsJob } from "./jobs/scrapeBills.js";
 import { scrapeCommitteeScheduleJob } from "./jobs/scrapeCommitteeSchedule.js";
 import { scrapeLegislatorsJob } from "./jobs/scrapeLegislators.js";
@@ -59,6 +60,12 @@ cron.schedule("15 19 * * *", () => {
 // 議案表決態度の同期(docs/adr/0017)。議案の取り込み後に実行する。
 cron.schedule("20 19 * * *", () => {
   void runJob("sync-bill-votes", syncBillVotesJob);
+});
+
+// 請願の取り込み(docs/adr/0026)。紹介議員の名寄せに議員データを使うため議員取り込みの後、
+// 会期終了判定に会期予定表を使うためそれらの後に実行する。
+cron.schedule("25 19 * * *", () => {
+  void runJob("ingest-petitions", ingestPetitionsJob);
 });
 
 // AIコンテンツ生成(Phase3)。スクレイピング完了後、1日1回・少数ずつ処理する。

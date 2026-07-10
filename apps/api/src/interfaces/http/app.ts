@@ -11,6 +11,7 @@ import { healthRouter } from "./routes/health.js";
 import { legislatorsRouter } from "./routes/legislators.js";
 import { meetingsRouter } from "./routes/meetings.js";
 import { ordinancesRouter } from "./routes/ordinances.js";
+import { petitionsRouter } from "./routes/petitions.js";
 import { searchRouter } from "./routes/search.js";
 import { tagsRouter } from "./routes/tags.js";
 
@@ -34,6 +35,7 @@ export function createApp(): Express {
   v1Router.use(billsRouter);
   v1Router.use(budgetsRouter);
   v1Router.use(ordinancesRouter);
+  v1Router.use(petitionsRouter);
   v1Router.use(searchRouter);
   v1Router.use(tagsRouter);
   v1Router.use(analysisRouter);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { fetchLegislatorDetail } from "@/lib/apiClient";
+import { fetchLegislatorDetail, fetchLegislatorPetitions } from "@/lib/apiClient";
+import { PetitionStatusBadge } from "@/components/PetitionStatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TagList } from "@/components/TagList";
 import { VOTE_TYPE_LABELS } from "@/lib/voteType";
@@ -11,7 +12,10 @@ interface LegislatorDetailPageProps {
 
 export default async function LegislatorDetailPage({ params }: LegislatorDetailPageProps) {
   const { id } = await params;
-  const legislator = await fetchLegislatorDetail(id);
+  const [legislator, { items: introducedPetitions }] = await Promise.all([
+    fetchLegislatorDetail(id),
+    fetchLegislatorPetitions(id),
+  ]);
   if (!legislator) {
     notFound();
   }
@@ -100,6 +104,28 @@ export default async function LegislatorDetailPage({ params }: LegislatorDetailP
           </ul>
         )}
       </section>
+
+      {introducedPetitions.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-3 font-semibold">紹介した請願(全{introducedPetitions.length}件)</h2>
+          <ul className="space-y-3">
+            {introducedPetitions.map((petition) => (
+              <li key={petition.id} className="rounded-lg border border-hairline bg-surface-1 p-3">
+                <div className="mb-1 flex items-start justify-between gap-3">
+                  <Link href="/petitions" className="font-medium text-ink-primary hover:underline">
+                    {petition.title}
+                  </Link>
+                  <PetitionStatusBadge status={petition.status} />
+                </div>
+                <p className="text-sm text-ink-secondary">
+                  {petition.receivedDate && `受理日: ${petition.receivedDate}`}
+                  {petition.committeeName && ` / 付託委員会: ${petition.committeeName}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

@@ -1,11 +1,13 @@
 import { LegislatorListQuerySchema } from "@saitama-council-watch/shared-types";
 import { Router } from "express";
 import { buildLegislatorDetail } from "../../../application/legislators/buildLegislatorDetail.js";
+import { attachSourceUrlToPetitions } from "../../../application/petitions/attachSourceUrl.js";
 import { buildSourceDocumentTagsMap } from "../../../domain/aiContent/billTags.js";
 import { prisma } from "../../../infrastructure/db/postgres/prismaClient.js";
 import { PrismaAiContentRepository } from "../../../infrastructure/db/postgres/repositories/PrismaAiContentRepository.js";
 import { PrismaDocumentRepository } from "../../../infrastructure/db/postgres/repositories/PrismaDocumentRepository.js";
 import { PrismaLegislatorRepository } from "../../../infrastructure/db/postgres/repositories/PrismaLegislatorRepository.js";
+import { PrismaPetitionRepository } from "../../../infrastructure/db/postgres/repositories/PrismaPetitionRepository.js";
 import { PrismaVoteRepository } from "../../../infrastructure/db/postgres/repositories/PrismaVoteRepository.js";
 import { HttpError } from "../middleware/errorHandler.js";
 
@@ -19,6 +21,7 @@ const legislatorRepository = new PrismaLegislatorRepository(prisma);
 const documentRepository = new PrismaDocumentRepository(prisma);
 const aiContentRepository = new PrismaAiContentRepository(prisma);
 const voteRepository = new PrismaVoteRepository(prisma);
+const petitionRepository = new PrismaPetitionRepository(prisma);
 
 legislatorsRouter.get("/legislators", async (req, res, next) => {
   try {
@@ -50,6 +53,23 @@ legislatorsRouter.get("/legislators/:id", async (req, res, next) => {
       tagsBySourceDocumentId,
     );
     res.json(detail);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 議員詳細(活動記録)向け(docs/adr/0020)。この議員が紹介した請願を返す(docs/adr/0026)。
+ */
+legislatorsRouter.get("/legislators/:id/petitions", async (req, res, next) => {
+  try {
+    const legislator = await legislatorRepository.findById(req.params.id ?? "");
+    if (!legislator) {
+      throw new HttpError(404, "Legislator not found");
+    }
+    const petitions = await petitionRepository.findByIntroducingLegislatorId(legislator.id);
+    const items = await attachSourceUrlToPetitions(petitions, documentRepository);
+    res.json({ items });
   } catch (error) {
     next(error);
   }
