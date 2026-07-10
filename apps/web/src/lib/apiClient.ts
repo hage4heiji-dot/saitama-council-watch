@@ -79,6 +79,7 @@ export function fetchBills(
     status?: BillStatus | undefined;
     tag?: string | undefined;
     limit?: number;
+    sort?: "asc" | "desc" | undefined;
   } = {},
 ): Promise<{ items: BillWithSource[]; nextCursor: string | null }> {
   const qs = new URLSearchParams();
@@ -90,6 +91,9 @@ export function fetchBills(
   }
   if (params.tag) {
     qs.set("tag", params.tag);
+  }
+  if (params.sort) {
+    qs.set("sort", params.sort);
   }
   qs.set("limit", String(params.limit ?? 50));
   return apiFetch(`/bills?${qs.toString()}`);

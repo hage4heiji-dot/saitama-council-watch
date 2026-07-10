@@ -7,23 +7,33 @@ import { PetitionStatusBadge } from "@/components/PetitionStatusBadge";
 export const metadata = { title: "請願一覧 | さいたま市議会ウォッチ" };
 
 interface PetitionsPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; sort?: string }>;
 }
 
 function isPetitionStatus(value: string): value is PetitionStatus {
   return (PETITION_STATUS_ORDER as string[]).includes(value);
 }
 
-function hrefFor(status: PetitionStatus | undefined): string {
-  return status ? `/petitions?status=${status}` : "/petitions";
+function hrefFor(status: PetitionStatus | undefined, ascending: boolean): string {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set("status", status);
+  }
+  if (ascending) {
+    params.set("sort", "asc");
+  }
+  const qs = params.toString();
+  return qs ? `/petitions?${qs}` : "/petitions";
 }
 
 export default async function PetitionsPage({ searchParams }: PetitionsPageProps) {
-  const { status: rawStatus } = await searchParams;
+  const { status: rawStatus, sort: rawSort } = await searchParams;
   const status = rawStatus && isPetitionStatus(rawStatus) ? rawStatus : undefined;
+  const ascending = rawSort === "asc";
 
   const { items: allItems } = await fetchPetitions();
-  const items = status ? allItems.filter((item) => item.status === status) : allItems;
+  const filtered = status ? allItems.filter((item) => item.status === status) : allItems;
+  const items = ascending ? [...filtered].reverse() : filtered;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -32,9 +42,9 @@ export default async function PetitionsPage({ searchParams }: PetitionsPageProps
         市議会議員の紹介を受けて提出された、市民からの請願の一覧です({items.length}件)。議会がどう対応したか(採択/不採択/取下げ)に加え、要旨を全文で読めます。
       </p>
 
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
+      <div className="mb-3 flex flex-wrap gap-2 text-sm">
         <Link
-          href={hrefFor(undefined)}
+          href={hrefFor(undefined, ascending)}
           className={`rounded-full border border-hairline px-3 py-1 ${!status ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
         >
           すべて
@@ -42,12 +52,27 @@ export default async function PetitionsPage({ searchParams }: PetitionsPageProps
         {PETITION_STATUS_ORDER.map((s) => (
           <Link
             key={s}
-            href={hrefFor(s)}
+            href={hrefFor(s, ascending)}
             className={`rounded-full border border-hairline px-3 py-1 ${status === s ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
           >
             {PETITION_STATUS_LABELS[s]}
           </Link>
         ))}
+      </div>
+
+      <div className="mb-6 flex gap-2 text-sm">
+        <Link
+          href={hrefFor(status, false)}
+          className={`rounded-full border border-hairline px-3 py-1 ${!ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          受理日が新しい順
+        </Link>
+        <Link
+          href={hrefFor(status, true)}
+          className={`rounded-full border border-hairline px-3 py-1 ${ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          受理日が古い順
+        </Link>
       </div>
 
       <ul className="divide-y divide-hairline">

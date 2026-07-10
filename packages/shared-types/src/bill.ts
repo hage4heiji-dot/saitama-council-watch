@@ -38,6 +38,8 @@ export const BillListQuerySchema = CursorPageQuerySchema.extend({
   meetingId: z.string().uuid().optional(),
   status: BillStatusSchema.optional(),
   tag: z.string().min(1).optional(),
+  /** 提出日順。既定は新しい順(desc) */
+  sort: z.enum(["asc", "desc"]).optional(),
 });
 export type BillListQuery = z.infer<typeof BillListQuerySchema>;
 

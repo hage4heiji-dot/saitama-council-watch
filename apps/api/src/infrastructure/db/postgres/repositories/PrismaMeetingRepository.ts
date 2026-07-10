@@ -85,7 +85,9 @@ export class PrismaMeetingRepository implements MeetingRepository {
 
   async findPage(query: PageQuery): Promise<Page<Meeting>> {
     const rows = await this.client.meeting.findMany({
-      orderBy: { id: "desc" },
+      // idはUUID(挿入順・時系列と無関係)のため、これ単体でのソートは実質ランダムになる
+      // (実データで発覚: 複数年度分の会期が混在した際に開始日の新しい順になっていなかった)。
+      orderBy: [{ startDate: { sort: "desc", nulls: "last" } }, { id: "desc" }],
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });

@@ -22,6 +22,8 @@ export interface BillRepository {
       status?: BillStatus | undefined;
       /** タグ絞り込み等、事前に解決したsourceDocumentIdの集合で絞り込む(docs/adr/0018) */
       sourceDocumentIds?: string[] | undefined;
+      /** 提出日順。既定は新しい順(desc) */
+      sort?: "asc" | "desc" | undefined;
     },
   ): Promise<Page<Bill>>;
   findManyByIds(ids: string[]): Promise<Bill[]>;

@@ -4,7 +4,7 @@ import { fetchBudgetFiscalYears, fetchBudgets } from "@/lib/apiClient";
 export const metadata = { title: "予算(歳出内訳) | さいたま市議会ウォッチ" };
 
 interface BudgetPageProps {
-  searchParams: Promise<{ fiscalYear?: string; account?: string }>;
+  searchParams: Promise<{ fiscalYear?: string; account?: string; sort?: string }>;
 }
 
 function formatOku(amountYen: number): string {
@@ -12,20 +12,24 @@ function formatOku(amountYen: number): string {
   return `${oku.toLocaleString("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}億円`;
 }
 
-function hrefFor(options: { fiscalYear: number; account: string | undefined }): string {
+function hrefFor(options: { fiscalYear: number; account: string | undefined; ascending: boolean }): string {
   const params = new URLSearchParams({ fiscalYear: String(options.fiscalYear) });
   if (options.account) {
     params.set("account", options.account);
+  }
+  if (options.ascending) {
+    params.set("sort", "asc");
   }
   return `/budget?${params.toString()}`;
 }
 
 export default async function BudgetPage({ searchParams }: BudgetPageProps) {
-  const { fiscalYear: rawFiscalYear, account: rawAccount } = await searchParams;
+  const { fiscalYear: rawFiscalYear, account: rawAccount, sort: rawSort } = await searchParams;
 
   const { items: fiscalYears } = await fetchBudgetFiscalYears();
   const fiscalYear =
     rawFiscalYear && fiscalYears.includes(Number(rawFiscalYear)) ? Number(rawFiscalYear) : fiscalYears[0];
+  const ascending = rawSort === "asc";
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -37,7 +41,7 @@ export default async function BudgetPage({ searchParams }: BudgetPageProps) {
       {fiscalYear === undefined ? (
         <p className="text-ink-muted">予算データがまだありません。</p>
       ) : (
-        <BudgetByYear fiscalYears={fiscalYears} fiscalYear={fiscalYear} rawAccount={rawAccount} />
+        <BudgetByYear fiscalYears={fiscalYears} fiscalYear={fiscalYear} rawAccount={rawAccount} ascending={ascending} />
       )}
     </main>
   );
@@ -47,10 +51,12 @@ async function BudgetByYear({
   fiscalYears,
   fiscalYear,
   rawAccount,
+  ascending,
 }: {
   fiscalYears: number[];
   fiscalYear: number;
   rawAccount: string | undefined;
+  ascending: boolean;
 }) {
   const { items: budgets } = await fetchBudgets(fiscalYear);
   const accountNames = [...new Set(budgets.map((b) => b.accountName))].sort((a, b) => a.localeCompare(b, "ja"));
@@ -59,7 +65,9 @@ async function BudgetByYear({
       ? rawAccount
       : (accountNames.find((name) => name === "一般会計") ?? accountNames[0]);
 
-  const categories = budgets.filter((b) => b.accountName === account).sort((a, b) => b.amount - a.amount);
+  const categories = budgets
+    .filter((b) => b.accountName === account)
+    .sort((a, b) => (ascending ? a.amount - b.amount : b.amount - a.amount));
   const maxAmount = Math.max(...categories.map((c) => c.amount), 1);
 
   return (
@@ -68,7 +76,7 @@ async function BudgetByYear({
         {fiscalYears.map((year) => (
           <Link
             key={year}
-            href={hrefFor({ fiscalYear: year, account })}
+            href={hrefFor({ fiscalYear: year, account, ascending })}
             className={`rounded-full border border-hairline px-3 py-1 ${
               year === fiscalYear ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"
             }`}
@@ -78,11 +86,11 @@ async function BudgetByYear({
         ))}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
+      <div className="mb-3 flex flex-wrap gap-2 text-sm">
         {accountNames.map((name) => (
           <Link
             key={name}
-            href={hrefFor({ fiscalYear, account: name })}
+            href={hrefFor({ fiscalYear, account: name, ascending })}
             className={`rounded-full border border-hairline px-3 py-1 ${
               name === account ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"
             }`}
@@ -90,6 +98,21 @@ async function BudgetByYear({
             {name}
           </Link>
         ))}
+      </div>
+
+      <div className="mb-6 flex gap-2 text-sm">
+        <Link
+          href={hrefFor({ fiscalYear, account, ascending: false })}
+          className={`rounded-full border border-hairline px-3 py-1 ${!ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          金額が多い順
+        </Link>
+        <Link
+          href={hrefFor({ fiscalYear, account, ascending: true })}
+          className={`rounded-full border border-hairline px-3 py-1 ${ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          金額が少ない順
+        </Link>
       </div>
 
       {categories.length === 0 ? (

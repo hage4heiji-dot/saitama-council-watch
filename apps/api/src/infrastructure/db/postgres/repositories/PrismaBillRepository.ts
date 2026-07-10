@@ -69,6 +69,7 @@ export class PrismaBillRepository implements BillRepository {
       meetingId?: string | undefined;
       status?: BillStatus | undefined;
       sourceDocumentIds?: string[] | undefined;
+      sort?: "asc" | "desc" | undefined;
     },
   ): Promise<Page<Bill>> {
     const where = {
@@ -76,8 +77,14 @@ export class PrismaBillRepository implements BillRepository {
       ...(query.status ? { status: SHARED_TO_PRISMA_STATUS[query.status] } : {}),
       ...(query.sourceDocumentIds ? { sourceDocumentId: { in: query.sourceDocumentIds } } : {}),
     };
+    const direction = query.sort ?? "desc";
     const rows = await this.client.bill.findMany({
-      orderBy: { id: "desc" },
+      // idはUUID(挿入順・時系列と無関係)のため、これ単体でのソートは実質ランダムになる
+      // (実データで発覚: 複数年度分の議案が混在した際に提出日の新しい順になっていなかった)。
+      // 提出日順に並べ、同日タイの場合のみidで安定した順序にする。limit件で打ち切るため、
+      // 「古い順」はクライアント側で配列を反転するのではなくDB側で逆順取得する必要がある
+      // (そうしないと「直近limit件のうち古い方」になってしまい、本当の最古とズレる)。
+      orderBy: [{ submittedDate: { sort: direction, nulls: "last" } }, { id: direction }],
       take: query.limit + 1,
       ...(Object.keys(where).length > 0 ? { where } : {}),
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
@@ -103,7 +110,7 @@ export class PrismaBillRepository implements BillRepository {
   async findWithoutAiContent(limit: number): Promise<Bill[]> {
     const rows = await this.client.bill.findMany({
       where: { sourceDocument: { aiContents: { none: {} } } },
-      orderBy: { id: "desc" },
+      orderBy: [{ submittedDate: { sort: "desc", nulls: "last" } }, { id: "desc" }],
       take: limit,
     });
     return rows.map(toDomain);

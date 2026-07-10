@@ -8,7 +8,7 @@ import { TagList } from "@/components/TagList";
 export const metadata = { title: "議案一覧 | さいたま市議会ウォッチ" };
 
 interface BillsPageProps {
-  searchParams: Promise<{ status?: string; tag?: string }>;
+  searchParams: Promise<{ status?: string; tag?: string; sort?: string }>;
 }
 
 function isBillStatus(value: string): value is BillStatus {
@@ -17,33 +17,40 @@ function isBillStatus(value: string): value is BillStatus {
 
 /** 現在のフィルタ状態を保ったまま、指定したパラメータだけ変更/解除したURLを作る */
 function buildFilterHref(
-  current: { status?: string | undefined; tag?: string | undefined },
-  changes: { status?: string | undefined; tag?: string | undefined },
+  current: { status?: string | undefined; tag?: string | undefined; sort?: string | undefined },
+  changes: { status?: string | undefined; tag?: string | undefined; sort?: string | undefined },
 ): string {
   const params = new URLSearchParams();
   const status = "status" in changes ? changes.status : current.status;
   const tag = "tag" in changes ? changes.tag : current.tag;
+  const sort = "sort" in changes ? changes.sort : current.sort;
   if (status) {
     params.set("status", status);
   }
   if (tag) {
     params.set("tag", tag);
   }
+  if (sort) {
+    params.set("sort", sort);
+  }
   const qs = params.toString();
   return qs ? `/bills?${qs}` : "/bills";
 }
 
 export default async function BillsPage({ searchParams }: BillsPageProps) {
-  const { status: rawStatus, tag } = await searchParams;
+  const { status: rawStatus, tag, sort: rawSort } = await searchParams;
   const status = rawStatus && isBillStatus(rawStatus) ? rawStatus : undefined;
+  const ascending = rawSort === "asc";
 
   // limitはAPIの上限(100)に合わせている。100件を超えたらページングUIが必要(現状のデータ規模ではYAGNI)。
+  // ソートはDB側(API)で行う。取得済みのlimit件をクライアント側で反転すると
+  // 「直近limit件のうち古い方」になってしまい、本当の最古とズレるため。
   const [{ items: bills }, { items: allTagCounts }] = await Promise.all([
-    fetchBills({ status, tag, limit: 100 }),
+    fetchBills({ status, tag, limit: 100, sort: ascending ? "asc" : "desc" }),
     fetchTagCounts(),
   ]);
 
-  const current = { status, tag };
+  const current = { status, tag, sort: rawSort };
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -73,7 +80,7 @@ export default async function BillsPage({ searchParams }: BillsPageProps) {
       </div>
 
       {allTagCounts.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2 text-sm">
+        <div className="mb-3 flex flex-wrap gap-2 text-sm">
           <Link
             href={buildFilterHref(current, { tag: undefined })}
             className={`rounded-full border border-hairline px-3 py-1 ${!tag ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
@@ -91,6 +98,21 @@ export default async function BillsPage({ searchParams }: BillsPageProps) {
           ))}
         </div>
       )}
+
+      <div className="mb-6 flex gap-2 text-sm">
+        <Link
+          href={buildFilterHref(current, { sort: undefined })}
+          className={`rounded-full border border-hairline px-3 py-1 ${!ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          提出日が新しい順
+        </Link>
+        <Link
+          href={buildFilterHref(current, { sort: "asc" })}
+          className={`rounded-full border border-hairline px-3 py-1 ${ascending ? "bg-ink-primary text-surface-page" : "bg-surface-1 hover:bg-surface-page"}`}
+        >
+          提出日が古い順
+        </Link>
+      </div>
 
       <ul className="divide-y divide-hairline">
         {bills.map((bill) => (
