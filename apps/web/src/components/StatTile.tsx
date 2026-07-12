@@ -12,10 +12,13 @@ interface StatTileProps {
 }
 
 export function StatTile({ label, value, hint, href }: StatTileProps) {
+  // 0件は実データ(1件以上)と同じ太字・濃色で出すと視覚的に同格に見えてしまうため、
+  // 数値0のときだけ控えめな色にして「値があるタイル」を目立たせる。
+  const isZero = typeof value === "number" && value === 0;
   const content = (
     <>
       <div className="text-sm text-ink-secondary">{label}</div>
-      <div className="mt-1 text-3xl font-semibold text-ink-primary">{value}</div>
+      <div className={`mt-1 text-3xl font-semibold ${isZero ? "text-ink-muted" : "text-ink-primary"}`}>{value}</div>
       {hint && <div className="mt-1 text-xs text-ink-muted">{hint}</div>}
     </>
   );

@@ -7,6 +7,9 @@ import { FactionBar } from "@/components/FactionBar";
 import { Meter } from "@/components/Meter";
 import { StatTile } from "@/components/StatTile";
 
+/** タグ別件数のうち常時表示する件数(残りは<details>で折りたたむ)。グリッドの4列に合わせた数 */
+const TOP_TAG_DISPLAY_COUNT = 8;
+
 /** 会期の開始日が新しい順(未取得はもっとも古い扱い)。DB取得順(id順)は暦日と無関係なため */
 function findLatestMeeting(meetings: Meeting[]): Meeting | null {
   if (meetings.length === 0) {
@@ -100,7 +103,8 @@ export default async function HomePage() {
             議案のタグ別件数({latestMeeting ? `${latestMeeting.sessionName}、` : ""}AI要約承認済み分)
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {tagCounts.map((tagCount) => (
+            {/* APIはcount降順(同数はタグ名の五十音順)で返すため、上位だけ常時表示し残りは折りたたむ */}
+            {tagCounts.slice(0, TOP_TAG_DISPLAY_COUNT).map((tagCount) => (
               <StatTile
                 key={tagCount.tag}
                 label={tagCount.tag}
@@ -109,6 +113,23 @@ export default async function HomePage() {
               />
             ))}
           </div>
+          {tagCounts.length > TOP_TAG_DISPLAY_COUNT && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm text-series-1 hover:underline">
+                他{tagCounts.length - TOP_TAG_DISPLAY_COUNT}件のタグを表示
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {tagCounts.slice(TOP_TAG_DISPLAY_COUNT).map((tagCount) => (
+                  <StatTile
+                    key={tagCount.tag}
+                    label={tagCount.tag}
+                    value={tagCount.count}
+                    href={`/bills?tag=${encodeURIComponent(tagCount.tag)}`}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
         </section>
       )}
 
