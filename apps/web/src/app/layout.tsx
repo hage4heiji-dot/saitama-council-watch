@@ -41,6 +41,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
         {children}
+        <footer className="border-t border-hairline bg-surface-1">
+          <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4 text-sm">
+            <span className="text-ink-secondary">さいたま市議会ウォッチ</span>
+            <a
+              href="https://x.com/saitamashiwatch"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-secondary hover:text-ink-primary"
+            >
+              X (旧Twitter)
+            </a>
+          </div>
+        </footer>
       </body>
     </html>
   );
