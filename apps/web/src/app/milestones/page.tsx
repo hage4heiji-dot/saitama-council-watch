@@ -3,6 +3,37 @@ import { fetchCommitteeMeetings } from "@/lib/apiClient";
 
 export const metadata = { title: "年間マイルストーン | さいたま市議会ウォッチ" };
 
+interface CalendarMonthGroup {
+  month: number; // 1-12
+  label: string; // "4月"
+  /** committeeBaseName -> 開催があった日付(年をまたいで集計・重複除去) */
+  daysByCommittee: Map<string, Set<string>>;
+}
+
+/** 4月始まり(年度)の順序でカレンダー月を並べる */
+const FISCAL_YEAR_MONTH_ORDER = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
+
+/**
+ * 年をまたいで月番号だけで集計し、年度内でどの時期に何が起きやすいかという
+ * 「通常の流れ」を見せる。特定の年の予定ではなく、これまでの実績から見える傾向。
+ */
+function groupByCalendarMonth(items: CommitteeMeeting[]): CalendarMonthGroup[] {
+  const groups = new Map<number, CalendarMonthGroup>(
+    FISCAL_YEAR_MONTH_ORDER.map((month) => [month, { month, label: `${month}月`, daysByCommittee: new Map() }]),
+  );
+
+  for (const item of items) {
+    const month = Number(item.date.slice(5, 7));
+    const group = groups.get(month);
+    if (!group) continue;
+    const days = group.daysByCommittee.get(item.committeeBaseName) ?? new Set<string>();
+    days.add(item.date);
+    group.daysByCommittee.set(item.committeeBaseName, days);
+  }
+
+  return FISCAL_YEAR_MONTH_ORDER.map((month) => groups.get(month)!);
+}
+
 interface MonthGroup {
   yearMonth: string; // YYYY-MM
   label: string; // "2026年2月"
@@ -26,11 +57,12 @@ function groupByMonth(items: CommitteeMeeting[]): MonthGroup[] {
     group.daysByCommittee.set(item.committeeBaseName, days);
   }
 
-  return [...groups.values()].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+  return [...groups.values()].sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
 }
 
 export default async function MilestonesPage() {
   const { items } = await fetchCommitteeMeetings();
+  const calendarMonths = groupByCalendarMonth(items);
   const months = groupByMonth(items);
 
   return (
@@ -42,29 +74,62 @@ export default async function MilestonesPage() {
         さいたま市議会公式サイト「会議日程一覧」。
       </p>
 
-      {months.length === 0 ? (
-        <p className="text-ink-muted">会議日程データがまだありません。</p>
-      ) : (
+      <section className="mb-10">
+        <h2 className="mb-1 font-semibold text-ink-primary">年度内の通常の流れ(4月始まり)</h2>
+        <p className="mb-4 text-sm text-ink-muted">
+          特定の年の予定ではなく、これまでの実績データから見える「毎年の傾向」です。データが蓄積されるほど精度が上がります。
+        </p>
         <ul className="space-y-4">
-          {months.map((month) => (
-            <li key={month.yearMonth} className="rounded-lg border border-hairline bg-surface-1 p-4">
-              <h2 className="mb-2 font-semibold text-ink-primary">{month.label}</h2>
-              <div className="flex flex-wrap gap-2 text-sm">
-                {[...month.daysByCommittee.entries()]
-                  .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0], "ja"))
-                  .map(([committeeName, days]) => (
-                    <span
-                      key={committeeName}
-                      className="rounded-full border border-hairline bg-surface-page px-3 py-1 text-ink-secondary"
-                    >
-                      {committeeName}({days.size}日)
-                    </span>
-                  ))}
-              </div>
+          {calendarMonths.map((month) => (
+            <li key={month.month} className="rounded-lg border border-hairline bg-surface-1 p-4">
+              <h3 className="mb-2 font-semibold text-ink-primary">{month.label}</h3>
+              {month.daysByCommittee.size === 0 ? (
+                <p className="text-sm text-ink-muted">実績データなし</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {[...month.daysByCommittee.entries()]
+                    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0], "ja"))
+                    .map(([committeeName, days]) => (
+                      <span
+                        key={committeeName}
+                        className="rounded-full border border-hairline bg-surface-page px-3 py-1 text-ink-secondary"
+                      >
+                        {committeeName}({days.size}日)
+                      </span>
+                    ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>
-      )}
+      </section>
+
+      <section>
+        <h2 className="mb-4 font-semibold text-ink-primary">実績一覧(新しい月順)</h2>
+        {months.length === 0 ? (
+          <p className="text-ink-muted">会議日程データがまだありません。</p>
+        ) : (
+          <ul className="space-y-4">
+            {months.map((month) => (
+              <li key={month.yearMonth} className="rounded-lg border border-hairline bg-surface-1 p-4">
+                <h3 className="mb-2 font-semibold text-ink-primary">{month.label}</h3>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {[...month.daysByCommittee.entries()]
+                    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0], "ja"))
+                    .map(([committeeName, days]) => (
+                      <span
+                        key={committeeName}
+                        className="rounded-full border border-hairline bg-surface-page px-3 py-1 text-ink-secondary"
+                      >
+                        {committeeName}({days.size}日)
+                      </span>
+                    ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
