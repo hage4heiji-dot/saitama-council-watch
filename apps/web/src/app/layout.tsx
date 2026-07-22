@@ -8,6 +8,19 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "さいたま市議会ウォッチ",
   description: "行政・議会・政治を、市民にわかりやすく。",
+  metadataBase: new URL("https://saitamashi-watch.com"),
+  openGraph: {
+    title: "さいたま市議会ウォッチ",
+    description: "行政・議会・政治を、市民にわかりやすく。",
+    url: "https://saitamashi-watch.com",
+    siteName: "さいたま市議会ウォッチ",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@saitamashiwatch",
+  },
 };
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
