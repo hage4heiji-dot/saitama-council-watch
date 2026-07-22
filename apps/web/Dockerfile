@@ -9,6 +9,8 @@ RUN npm ci
 
 FROM deps AS build
 WORKDIR /app
+ARG NEXT_PUBLIC_GA_MEASUREMENT_ID
+ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 COPY tsconfig.base.json ./
 COPY packages/shared-types packages/shared-types
 COPY apps/web apps/web
