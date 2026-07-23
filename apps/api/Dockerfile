@@ -24,8 +24,10 @@ RUN npm run --workspace apps/api build
 FROM node:22-bookworm-slim AS runtime
 # poppler-utils(pdftotext): 選挙結果PDF(docs/adr/0027)はpdf-parse内蔵の古いpdfjsでは
 # フォントを解決できず本文が空になるため、このPDF種別のみpdftotextで抽出する。
+# poppler-data: CID日本語フォント(Adobe-Japan1)のマッピングデータ。これが無いと
+# 「Missing language pack for 'Adobe-Japan1' mapping」で本文が空になることを実機で確認した。
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl poppler-utils \
+    && apt-get install -y --no-install-recommends openssl poppler-utils poppler-data \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --create-home appuser
 WORKDIR /app
