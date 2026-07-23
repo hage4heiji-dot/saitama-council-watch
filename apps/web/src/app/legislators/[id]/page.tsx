@@ -38,6 +38,10 @@ export default async function LegislatorDetailPage({ params }: LegislatorDetailP
       </div>
       <p className="mb-6 text-sm text-ink-secondary">
         現在の会派: {legislator.currentFaction?.name ?? "無所属・不明"}
+        {" ／ "}
+        <Link href="/legislators/history" className="hover:underline">
+          任期履歴を見る
+        </Link>
       </p>
 
       {legislator.factionHistory.length > 0 && (

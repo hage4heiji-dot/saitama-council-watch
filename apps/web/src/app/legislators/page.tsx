@@ -27,12 +27,17 @@ export default async function LegislatorsPage({ searchParams }: LegislatorsPageP
     <main className="mx-auto max-w-4xl px-6 py-10">
       <div className="mb-1 flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">議員一覧</h1>
-        <Link
-          href={showInactive ? "/legislators" : "/legislators?includeInactive=true"}
-          className="text-sm text-ink-secondary hover:underline"
-        >
-          {showInactive ? "現職のみ表示" : "元議員も表示する"}
-        </Link>
+        <div className="flex items-center gap-4 text-sm">
+          <Link href="/legislators/history" className="text-ink-secondary hover:underline">
+            任期履歴を見る
+          </Link>
+          <Link
+            href={showInactive ? "/legislators" : "/legislators?includeInactive=true"}
+            className="text-ink-secondary hover:underline"
+          >
+            {showInactive ? "現職のみ表示" : "元議員も表示する"}
+          </Link>
+        </div>
       </div>
       <p className="mb-6 text-sm text-ink-muted">
         現職{activeCount}名{showInactive ? `(元議員含め全${items.length}名を表示中)` : ""}
