@@ -6,6 +6,7 @@ import type {
   BillWithSource,
   Budget,
   CommitteeMeeting,
+  CouncilTerm,
   FactionTagMatrix,
   LegislatorDetail,
   LegislatorTagMatrix,
@@ -57,6 +58,10 @@ export function fetchBudgetFiscalYears(): Promise<{ items: number[] }> {
 
 export function fetchBudgets(fiscalYear: number): Promise<{ items: Budget[] }> {
   return apiFetch<{ items: Budget[] }>(`/budgets?fiscalYear=${fiscalYear}`).catch(() => ({ items: [] }));
+}
+
+export function fetchCouncilTerms(): Promise<{ items: CouncilTerm[] }> {
+  return apiFetch<{ items: CouncilTerm[] }>("/council-terms").catch(() => ({ items: [] }));
 }
 
 export function fetchOrdinances(): Promise<{ items: OrdinanceBill[] }> {
