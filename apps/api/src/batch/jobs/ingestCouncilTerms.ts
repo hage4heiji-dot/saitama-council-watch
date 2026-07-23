@@ -13,13 +13,41 @@ import { runJob } from "../runJob.js";
  * 確定済みの過去選挙は結果が変わらないため、cronスケジュール(src/batch/runner.ts)には
  * 登録しない。`npm run --workspace apps/api ingest:council-terms`で手動実行する。
  *
- * PR1(このコミット時点)では実データでの解析を検証済みの2003年(平成15年)のみを対象とする。
- * 残り5回の選挙(2007/2011/2015/2019/2023)は別PRで追加する(docs/adr/0027)。
+ * 2003年(合併後初の統一地方選挙)〜2023年までの全6回の統一地方選挙を対象とする(PR2)。
+ * 2027年の次回統一地方選挙が実施されたら、この配列に新しい選挙を追記して再実行する。
+ * 既知の補欠選挙(2013年見沼区、2009年西区・北区、2005年浦和区・岩槻区、2004年南区)は
+ * 別のPDFで公開されているが、今回はスコープ外とする(将来の課題、docs/adr/0027)。
+ * 2015年の北区はこのPDFに掲載がない(無投票当選等の理由と推測。捏造せず未収録のままにする)。
  */
 const ELECTIONS: CouncilTermElectionConfig[] = [
   {
     query: { era: "平成", eraYear: 15, indexPagePath: "/006/009/kakonosenkyokekka/p018209.html" },
     electionDate: "2003-04-13",
+    electionKind: "regular",
+  },
+  {
+    query: { era: "平成", eraYear: 19, indexPagePath: "/006/009/kakonosenkyokekka/p018209.html" },
+    electionDate: "2007-04-08",
+    electionKind: "regular",
+  },
+  {
+    query: { era: "平成", eraYear: 23, indexPagePath: "/006/009/kakonosenkyokekka/p018209.html" },
+    electionDate: "2011-04-10",
+    electionKind: "regular",
+  },
+  {
+    query: { era: "平成", eraYear: 27, indexPagePath: "/006/009/kakonosenkyokekka/p047821.html" },
+    electionDate: "2015-04-12",
+    electionKind: "regular",
+  },
+  {
+    query: { era: "平成", eraYear: 31, indexPagePath: "/006/009/kakonosenkyokekka/p047821.html" },
+    electionDate: "2019-04-07",
+    electionKind: "regular",
+  },
+  {
+    query: { era: "令和", eraYear: 5, indexPagePath: "/006/009/kakonosenkyokekka/p096964.html" },
+    electionDate: "2023-04-09",
     electionKind: "regular",
   },
 ];

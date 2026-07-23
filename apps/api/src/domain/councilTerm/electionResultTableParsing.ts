@@ -5,13 +5,26 @@ import { computeTermBoundary } from "./termBoundaryCalculation.js";
  * さいたま市議会議員選挙「得票数及び当選人」PDFのテキスト解析(docs/adr/0027)。
  *
  * pdftotext -layout(docs/adr/0027、pdf-parseがこのPDF種別のフォントを解決できない
- * ため採用)の出力は、区ごとに以下の形で列位置がほぼ保たれる(2003年実データで確認):
- *   得票順位   候補者氏名(姓)   候補者氏名(名)   党派   得票数
- * 各列は2つ以上の連続する半角空白で区切られている。当選人は丸数字(①②…)、
- * 落選者は算用数字。繰上当選により後から当選した候補者の行には先頭に「※」が付き、
- * 区の末尾に「※ 平成◯年◯月◯日、〜氏が議員を辞職したことにより、平成◯年◯月◯日に
- * 繰上補充選挙会が開催され、〜氏が繰上当選した。」という脚注が付く(実データで確認)。
+ * ため採用)の出力は、区ごとに以下の列がほぼ保たれる:
+ *   得票順位   候補者氏名(姓/名)   党派   得票数
+ * ただし2003年(平成15年)PDFのみ、得票順位と氏名の間に広い空白(列位置合わせ)があるのに対し、
+ * 2007年(平成19年)以降のPDFは得票順位と氏名の間が半角スペース1個のみで、氏名の姓/名の
+ * 間隔も行によって1個〜複数個とまちまちである(実データで確認)。この差異を吸収するため、
+ * まず行頭の得票順位(丸数字または算用数字、繰上当選対象は「※」接頭辞)を専用の正規表現で
+ * 切り出してから、残りを2個以上の連続空白で列分割する(「得票順位+空白1個」と
+ * 「列区切りの空白2個以上」を区別する)。
+ *
+ * 当選人は丸数字(①②…)、落選者は算用数字。繰上当選により後から当選した候補者の行には
+ * 先頭に「※」が付き、区の末尾に「※ (平成◯年◯月◯日、|平成◯年◯月◯日に)〜氏が議員を
+ * 辞職したことにより、平成◯年◯月◯日に繰上補充選挙会が開催され、〜氏が繰上当選した。」
+ * という脚注が付く(2003年・2011年の実データで、句読点の入り方が異なる2パターンを確認)。
  * 脚注は改行で折り返されることがあるため、空行または次区・execフッターまで連結する。
+ *
+ * 区見出しの書式も年度によって異なる(実データで確認した3パターン):
+ *   1. 2003年: 「【西区】」のように【】で囲む
+ *   2. 2007〜2015年: 「西区」が単独行(前後に大きくインデントされることがある)
+ *   3. 2019年以降: 「さいたま市議会議員一般選挙                        西区」のように
+ *      選挙名と同じ行の末尾に区名が続く
  */
 
 export interface ScrapedCandidateRow {
@@ -82,22 +95,56 @@ function parseRankToken(token: string): ParsedRankToken | null {
   return null;
 }
 
-const VOTE_COUNT_PATTERN = /^[\d,]+\.\d+$/;
+// 得票数は年度により小数第三位まで表記される場合(2003年、あん分得票)と整数のみの場合がある
+const VOTE_COUNT_PATTERN = /^[\d,]+(?:\.\d+)?$/;
 
-/** 列区切り(2個以上連続する半角空白)で分割し、得票順位・氏名(姓/名)・党派・得票数の5列に一致する行のみ候補行として解釈する */
+// 行頭の得票順位(丸数字/算用数字、繰上当選対象は「※」接頭辞)と、それに続く空白1個以上を切り出す。
+// 得票順位と氏名の間の空白は年度によって1個〜複数個とまちまちなため、ここでは「1個以上」とし、
+// 残りの列区切り(2個以上の空白)と区別する。
+const RANK_PREFIX_PATTERN = /^\s*(?<rankToken>※?(?:[①-⑳]|\d{1,2}))\s+(?<rest>\S.*)$/;
+
+/**
+ * 行頭の得票順位を切り出した後、残りを2個以上の連続空白で列分割する。
+ * 氏名の姓/名の間隔が広い場合は[姓, 名, 党派, 得票数]の4列、狭い(1個)場合は
+ * 姓名が1列にまとまり[姓名, 党派, 得票数]の3列になる。いずれも末尾2列が党派・得票数、
+ * 残りが姓名(1〜2列)という構造は変わらないため、末尾から解決する。
+ */
 function parseCandidateRow(line: string): ScrapedCandidateRow | null {
-  const columns = line
-    .trim()
+  const prefixMatch = RANK_PREFIX_PATTERN.exec(line);
+  if (!prefixMatch?.groups) {
+    return null;
+  }
+  const rank = parseRankToken(prefixMatch.groups.rankToken!);
+  if (!rank) {
+    return null;
+  }
+
+  const restColumns = prefixMatch.groups
+    .rest!.trim()
     .split(/ {2,}/)
     .filter((column) => column.length > 0);
-  if (columns.length !== 5) {
+  if (restColumns.length < 3) {
     return null;
   }
-  const [rankToken, surname, givenName, party, votesToken] = columns as [string, string, string, string, string];
-  const rank = parseRankToken(rankToken);
-  if (!rank || !VOTE_COUNT_PATTERN.test(votesToken)) {
+  const votesToken = restColumns[restColumns.length - 1]!;
+  const party = restColumns[restColumns.length - 2]!;
+  const nameColumns = restColumns.slice(0, restColumns.length - 2);
+  if (!VOTE_COUNT_PATTERN.test(votesToken) || nameColumns.length === 0) {
     return null;
   }
+
+  let surname: string;
+  let givenName: string;
+  if (nameColumns.length >= 2) {
+    surname = nameColumns[0]!;
+    givenName = nameColumns.slice(1).join("");
+  } else {
+    // 姓名が1列にまとまっている場合、半角スペース1個で区切られている(実データで確認)
+    const nameParts = nameColumns[0]!.split(" ").filter((part) => part.length > 0);
+    surname = nameParts[0] ?? nameColumns[0]!;
+    givenName = nameParts.slice(1).join("");
+  }
+
   return {
     rank: rank.rank,
     wasOriginallyElected: rank.wasOriginallyElected,
@@ -132,8 +179,13 @@ function parseWardTermDates(blockText: string): { termStartDate: string | null; 
   return { termStartDate: null, termEndDate: null };
 }
 
-const RESIGNATION_SUCCESSION_PATTERN =
-  /(?<resignedName>[^、]+?)氏が議員を辞職したことにより.*?(?<successorName>[^、]+?)氏が繰上当選した/;
+// 日付+氏名の間の区切りが「、」(2003年実データ)か「に」(2011年実データ、読点なし)かが
+// 年度によって異なるため、両対応の定型文パターンにする。resignedName/successorNameの
+// 非貪欲マッチは直前の日付パターンで開始位置が固定されるため、句読点の有無に依存しない。
+const DATE_SUB_PATTERN = "(?:平成|令和)[0-9０-９]+年[0-9０-９]+月[0-9０-９]+日";
+const RESIGNATION_SUCCESSION_PATTERN = new RegExp(
+  `${DATE_SUB_PATTERN}[、に](?<resignedName>[^、]+?)氏が議員を辞職したことにより、?${DATE_SUB_PATTERN}に繰上補充選挙会が開催され、?(?<successorName>[^、]+?)氏が繰上当選した`,
+);
 
 function parseResignationSuccessionSentence(text: string): ResignationSuccessionEvent | null {
   const dates = findEraDates(text);
@@ -180,15 +232,47 @@ function parseResignationSuccessionFootnotes(blockText: string): ResignationSucc
   return events;
 }
 
-const WARD_HEADING_PATTERN = /【(?<ward>[^】]+)】/g;
+// さいたま市の行政区(2005年の岩槻区編入以降10区。2003年時点は岩槻区を含まない9区)
+const WARD_NAMES = ["西区", "北区", "大宮区", "見沼区", "中央区", "桜区", "浦和区", "南区", "緑区", "岩槻区"];
+
+/**
+ * 区見出し行を検出する。年度によって3通りの書式があるため(ファイル冒頭のコメント参照)、
+ * いずれかに一致した区名を返す。それ以外の行はnull。
+ */
+function matchWardHeading(line: string): string | null {
+  const trimmed = line.trim();
+  for (const ward of WARD_NAMES) {
+    // 2003年形式:「【西区】                    0:50 確定」のように【】の後に別の情報が続くため、
+    // 行全体の一致ではなく部分一致で判定する
+    if (trimmed.includes(`【${ward}】`)) {
+      return ward;
+    }
+    // 2007〜2015年形式: 区名のみの行
+    if (trimmed === ward) {
+      return ward;
+    }
+    // 2019年以降形式: 選挙名と同じ行の末尾に区名が続く
+    if (trimmed.includes("市議会議員一般選挙") && trimmed.endsWith(ward)) {
+      return ward;
+    }
+  }
+  return null;
+}
 
 /** pdftotext -layoutの出力全体(複数区分)を区ごとのテキストブロックに分割する */
 function splitWardBlocks(rawText: string): { ward: string; text: string }[] {
-  const headingMatches = [...rawText.matchAll(WARD_HEADING_PATTERN)];
-  return headingMatches.map((match, index) => {
-    const start = match.index ?? 0;
-    const end = index + 1 < headingMatches.length ? (headingMatches[index + 1]!.index ?? rawText.length) : rawText.length;
-    return { ward: match.groups!.ward!, text: rawText.slice(start, end) };
+  const lines = rawText.split("\n");
+  const headings: { ward: string; lineIndex: number }[] = [];
+  lines.forEach((line, index) => {
+    const ward = matchWardHeading(line);
+    if (ward) {
+      headings.push({ ward, lineIndex: index });
+    }
+  });
+
+  return headings.map(({ ward, lineIndex }, index) => {
+    const endLineIndex = index + 1 < headings.length ? headings[index + 1]!.lineIndex : lines.length;
+    return { ward, text: lines.slice(lineIndex, endLineIndex).join("\n") };
   });
 }
 

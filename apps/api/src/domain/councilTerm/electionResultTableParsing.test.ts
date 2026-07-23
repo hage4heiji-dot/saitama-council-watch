@@ -12,6 +12,16 @@ const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "__fixtures__")
  * 任期途中の辞職・繰上補充選挙が実際に発生した区、北区は通常の当選のみの区。
  */
 const h15Text = readFileSync(join(fixtureDir, "h15-tokuhyousuu-tousennin.txt"), "utf-8");
+/** 平成19年(2007年)。区名見出しが「西区」単独行になる書式(2003年の【】囲みと異なる) */
+const h19Text = readFileSync(join(fixtureDir, "h19-tokuhyousuu-tousennin.txt"), "utf-8");
+/** 平成23年(2011年)。岩槻区で辞職・繰上当選が実際に発生している(2003年と句読点の入り方が異なる脚注文) */
+const h23Text = readFileSync(join(fixtureDir, "h23-tokuhyousuu-tousennin.txt"), "utf-8");
+/** 平成27年(2015年)。北区がこのPDFに含まれない(無投票当選等の理由と推測。捏造せずそのまま反映する) */
+const h27Text = readFileSync(join(fixtureDir, "h27-tokuhyousuu-tousennin.txt"), "utf-8");
+/** 平成31年(2019年)。区名見出しが選挙名と同じ行の末尾に続く書式 */
+const h31Text = readFileSync(join(fixtureDir, "h31-tokuhyousuu-tousennin.txt"), "utf-8");
+/** 令和5年(2023年)。h31と同じ見出し書式 */
+const r5Text = readFileSync(join(fixtureDir, "r5-tousennninn.txt"), "utf-8");
 
 describe("parseElectionResultDocument", () => {
   const wards = parseElectionResultDocument(h15Text);
@@ -89,6 +99,63 @@ describe("parseElectionResultDocument", () => {
     const kitaku = wards.find((w) => w.ward === "北区")!;
     const seki = kitaku.candidates.find((c) => c.surname === "清水");
     expect(seki?.party).toBeNull();
+  });
+});
+
+describe("parseElectionResultDocument (2007年以降の書式差異)", () => {
+  it("2007年: 区名が単独行の書式でも10区すべて分割でき、任期の明記はないためnullのまま", () => {
+    const wards = parseElectionResultDocument(h19Text);
+    expect(wards).toHaveLength(10);
+    expect(wards.map((w) => w.ward)).toContain("岩槻区");
+    for (const ward of wards) {
+      expect(ward.termStartDate).toBeNull();
+      expect(ward.termEndDate).toBeNull();
+    }
+    // 得票数が整数表記(小数点なし)でも正しく数値として解析できる
+    const nishiku = wards.find((w) => w.ward === "西区")!;
+    const ikeda = nishiku.candidates.find((c) => c.rank === 1)!;
+    expect(ikeda.surname).toBe("池田");
+    expect(ikeda.givenName).toBe("まり");
+    expect(ikeda.voteCount).toBe(6709);
+  });
+
+  it("2011年: 岩槻区の辞職・繰上当選(句読点の入り方が2003年と異なる脚注文)を正しく解析する", () => {
+    const wards = parseElectionResultDocument(h23Text);
+    const iwatsukiku = wards.find((w) => w.ward === "岩槻区")!;
+    expect(iwatsukiku.resignationEvents).toEqual([
+      {
+        resignedName: "北村たかゆき",
+        resignedDate: "2011-05-10",
+        successionDate: "2011-05-20",
+        successorName: "高野ひでき",
+      },
+    ]);
+    const succession = iwatsukiku.candidates.find((c) => c.rank === 6);
+    expect(succession?.wasOriginallyElected).toBe(false);
+    expect(succession?.surname).toBe("高野");
+  });
+
+  it("2015年: このPDFに含まれない区(北区)は結果に現れない(捏造しない。無投票等の理由と推測)", () => {
+    const wards = parseElectionResultDocument(h27Text);
+    expect(wards.map((w) => w.ward)).not.toContain("北区");
+    expect(wards).toHaveLength(9);
+  });
+
+  it("2019年: 区名が選挙名と同じ行の末尾に続く書式でも10区すべて分割できる", () => {
+    const wards = parseElectionResultDocument(h31Text);
+    expect(wards).toHaveLength(10);
+    const nishiku = wards.find((w) => w.ward === "西区")!;
+    expect(nishiku.candidates.filter((c) => c.wasOriginallyElected)).toHaveLength(4);
+  });
+
+  it("2023年: 姓名の間隔が広い書式(複数空白)でも正しく姓/名に分割できる", () => {
+    const wards = parseElectionResultDocument(r5Text);
+    expect(wards).toHaveLength(10);
+    const nishiku = wards.find((w) => w.ward === "西区")!;
+    const izumo = nishiku.candidates.find((c) => c.rank === 1)!;
+    expect(izumo.surname).toBe("出雲");
+    expect(izumo.givenName).toBe("けいこ");
+    expect(izumo.voteCount).toBe(6872);
   });
 });
 
