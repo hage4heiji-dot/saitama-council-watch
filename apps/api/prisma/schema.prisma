@@ -90,6 +90,24 @@ enum BatchJobStatus {
   FAILED
 }
 
+enum CouncilTermOrigin {
+  ELECTION // 通常の当選(統一地方選挙または補欠選挙)
+  RUNNER_UP_SUCCESSION // 繰上当選(欠員に伴う次点者の繰り上げ)
+}
+
+enum ElectionKind {
+  REGULAR // 統一地方選挙
+  BY_ELECTION // 欠員に伴う補欠選挙
+}
+
+// 任期の開始日・終了日が原本PDFに明記されていたか(EXPLICIT)、統一地方選挙の
+// 慣例(5/1開始・4/30満了)から算出した仮定か(ASSUMED)を区別する(docs/adr/0027)。
+// ASSUMEDは要検証の仮定であり事実として断定しない。
+enum DateBasis {
+  EXPLICIT
+  ASSUMED
+}
+
 model Faction {
   id          String    @id @default(uuid())
   name        String
@@ -113,6 +131,7 @@ model Legislator {
   factionHistory      LegislatorFactionHistory[]
   votes               Vote[]
   petitionIntroducers PetitionIntroducer[]
+  councilTerms        CouncilTerm[]
 
   // スクレイピング時の自然キー(プロフィールページURL)。手動追加データはnull許容のまま。
   @@unique([profileUrl])
@@ -296,10 +315,11 @@ model Document {
   version     Int          @default(1)
   fetchedAt   DateTime     @map("fetched_at")
 
-  bills      Bill[]
-  ordinances Ordinance[]
-  aiContents AiContent[]
-  petitions  Petition[]
+  bills        Bill[]
+  ordinances   Ordinance[]
+  aiContents   AiContent[]
+  petitions    Petition[]
+  councilTerms CouncilTerm[]
 
   @@unique([sourceUrl, version])
   @@index([checksum])
@@ -354,6 +374,48 @@ model NotificationSetting {
 
   @@unique([userId, channel])
   @@map("notification_settings")
+}
+
+// 市議会議員選挙の当選人・繰上当選者を1任期=1行で表す(docs/adr/0027)。
+// 過去の当選者は既存Legislatorと確実に一致するとは限らない(引退・表記揺れ)ため、
+// このモデル自身がスクレイピング結果(氏名・選出区・党派・得票数)を単独で保持し、
+// legislatorIdは確信を持って一致できた場合のみ設定する(捏造しない、ADR-0023と同じ方針)。
+model CouncilTerm {
+  id               String            @id @default(uuid())
+  origin           CouncilTermOrigin
+  // origin=RUNNER_UP_SUCCESSIONの場合は投票を伴わないためnull
+  electionKind     ElectionKind?     @map("election_kind")
+  electionDate     DateTime?         @map("election_date") @db.Date
+  // 選出区。原本表記のまま(例:"西区")
+  ward             String
+  // 原本の姓名表記(捏造しない)。既存Legislatorと一致しない場合もあるため単独で保持する
+  candidateRawName String            @map("candidate_raw_name")
+  partyRawName     String?           @map("party_raw_name")
+  // 当選順位(①②③...)。繰上当選は投票による順位がないためnull
+  electedRank      Int?              @map("elected_rank")
+  // 得票数。原本が小数第三位まで表記("5,302.000")のためDecimal
+  voteCount        Decimal?          @map("vote_count") @db.Decimal(10, 3)
+
+  termStartDate      DateTime   @map("term_start_date") @db.Date
+  termStartDateBasis DateBasis  @map("term_start_date_basis")
+  termEndDate        DateTime?  @map("term_end_date") @db.Date
+  termEndDateBasis   DateBasis? @map("term_end_date_basis")
+  // 任期途中の辞職日。原本脚注から判明した場合のみ(捏造しない)
+  resignedDate       DateTime?  @map("resigned_date") @db.Date
+  // 脚注原文の氏名(自由文のセーフティネット。パース失敗時も生データを失わない)
+  successorRawName   String?    @map("successor_raw_name")
+  predecessorRawName String?    @map("predecessor_raw_name")
+
+  legislatorId     String? @map("legislator_id")
+  sourceDocumentId String  @map("source_document_id")
+
+  legislator     Legislator? @relation(fields: [legislatorId], references: [id])
+  sourceDocument Document    @relation(fields: [sourceDocumentId], references: [id])
+
+  @@unique([ward, candidateRawName, termStartDate])
+  @@index([legislatorId])
+  @@index([ward])
+  @@map("council_terms")
 }
 
 // バッチジョブ実行履歴。ソロ運用における唯一の観測手段(docs/design/01-basic-design.md §7)。

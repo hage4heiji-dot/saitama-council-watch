@@ -22,8 +22,10 @@ RUN npm run --workspace apps/api prisma:generate
 RUN npm run --workspace apps/api build
 
 FROM node:22-bookworm-slim AS runtime
+# poppler-utils(pdftotext): 選挙結果PDF(docs/adr/0027)はpdf-parse内蔵の古いpdfjsでは
+# フォントを解決できず本文が空になるため、このPDF種別のみpdftotextで抽出する。
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl \
+    && apt-get install -y --no-install-recommends openssl poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --create-home appuser
 WORKDIR /app
