@@ -1,5 +1,6 @@
 export * from "./committeeMeeting.js";
 export * from "./common.js";
+export * from "./councilTerm.js";
 export * from "./document.js";
 export * from "./legislator.js";
 export * from "./meeting.js";
