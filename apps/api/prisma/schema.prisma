@@ -108,6 +108,12 @@ enum DateBasis {
   ASSUMED
 }
 
+// 歳出(支出)/歳入(収入)の別(docs/adr/0028)。
+enum BudgetType {
+  EXPENDITURE
+  REVENUE
+}
+
 model Faction {
   id          String    @id @default(uuid())
   name        String
@@ -287,21 +293,23 @@ model Vote {
 }
 
 model Budget {
-  id            String  @id @default(uuid())
-  fiscalYear    Int     @map("fiscal_year")
+  id            String     @id @default(uuid())
+  fiscalYear    Int        @map("fiscal_year")
   // 一般会計/各特別会計の別。同じ款名(例:「総務費」)が会計をまたいで重複しうるため、
-  // (fiscalYear, accountName, category) で一意にする(docs/adr/0024)。
-  accountName   String  @map("account_name")
+  // (fiscalYear, accountName, category, budgetType) で一意にする(docs/adr/0024, 0028)。
+  accountName   String     @map("account_name")
   category      String
+  // 歳出(支出)/歳入(収入)の別(docs/adr/0028)
+  budgetType    BudgetType @default(EXPENDITURE) @map("budget_type")
   // 款番号(原本の表記通り。表示順の並べ替えに使う。docs/adr/0024)
-  categoryOrder Int     @map("category_order")
-  amount        Decimal @db.Decimal(14, 0)
-  relatedBillId String? @map("related_bill_id")
+  categoryOrder Int        @map("category_order")
+  amount        Decimal    @db.Decimal(14, 0)
+  relatedBillId String?    @map("related_bill_id")
   description   String
 
   relatedBill Bill? @relation(fields: [relatedBillId], references: [id])
 
-  @@unique([fiscalYear, accountName, category])
+  @@unique([fiscalYear, accountName, category, budgetType])
   @@map("budgets")
 }
 

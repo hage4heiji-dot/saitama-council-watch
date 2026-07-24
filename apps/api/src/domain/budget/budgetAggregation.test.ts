@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateExpenditureBudget, type BudgetBillInput } from "./budgetAggregation.js";
+import { aggregateBudget, type BudgetBillInput } from "./budgetAggregation.js";
 
 /**
  * 実データの形(議案第18号 令和8年度一般会計予算 → 議案第108号 補正予算(第1号))を模した
@@ -41,9 +41,9 @@ const amendment1: BudgetBillInput = {
   ],
 };
 
-describe("aggregateExpenditureBudget", () => {
+describe("aggregateBudget", () => {
   it("補正予算で変更のあった款は最新の金額に、変更のない款は当初予算のままにする", () => {
-    const result = aggregateExpenditureBudget([amendment1, initialBudget]);
+    const result = aggregateBudget([amendment1, initialBudget]);
     const byNumber = new Map(result.map((r) => [r.categoryNumber, r]));
 
     expect(byNumber.get("1")).toMatchObject({
@@ -64,13 +64,13 @@ describe("aggregateExpenditureBudget", () => {
   });
 
   it("入力の順序によらず、当初予算→補正予算の順に適用する(号数順)", () => {
-    const forward = aggregateExpenditureBudget([initialBudget, amendment1]);
-    const backward = aggregateExpenditureBudget([amendment1, initialBudget]);
+    const forward = aggregateBudget([initialBudget, amendment1]);
+    const backward = aggregateBudget([amendment1, initialBudget]);
     expect(forward).toEqual(backward);
   });
 
   it("項の内訳を千円単位の説明文として保持する(捏造しない)", () => {
-    const result = aggregateExpenditureBudget([initialBudget, amendment1]);
+    const result = aggregateBudget([initialBudget, amendment1]);
     const soumu = result.find((r) => r.categoryNumber === "2");
     expect(soumu?.description).toBe("総務管理費 36,419,261千円");
   });
@@ -82,7 +82,7 @@ describe("aggregateExpenditureBudget", () => {
       accountName: "国民健康保険事業特別会計",
       categories: [{ categoryNumber: "2", categoryName: "総務費", amountYen: 1_000_000, subItems: [] }],
     };
-    const result = aggregateExpenditureBudget([initialBudget, otherAccount]);
+    const result = aggregateBudget([initialBudget, otherAccount]);
     const generalSoumu = result.find((r) => r.accountName === "一般会計" && r.categoryNumber === "2");
     const kokuhoSoumu = result.find(
       (r) => r.accountName === "国民健康保険事業特別会計" && r.categoryNumber === "2",

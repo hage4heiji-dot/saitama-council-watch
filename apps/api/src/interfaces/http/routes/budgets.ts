@@ -18,7 +18,8 @@ budgetsRouter.get("/budgets/fiscal-years", async (_req, res, next) => {
 });
 
 /**
- * 指定した会計年度の歳出内訳(款別)を全会計分返す。小規模データのためページネーションは
+ * 指定した会計年度の歳出・歳入内訳(款別)を全会計分返す(docs/adr/0028)。
+ * 歳出/歳入のフィルタはクライアント側で行う。小規模データのためページネーションは
  * 行わない(議員一覧・年間マイルストーンと同じ判断、YAGNI)。
  */
 budgetsRouter.get("/budgets", async (req, res, next) => {

@@ -1,15 +1,17 @@
 import { clusterByX, nearestCluster } from "../shared/xClustering.js";
 
 /**
- * 予算議案PDF(当初予算・補正予算)の「第１表 歳入歳出予算(補正)」表のうち、
- * 歳出(支出)側を解析する(docs/adr/0024)。
+ * 予算議案PDF(当初予算・補正予算)の「第１表 歳入歳出予算(補正)」表を解析する
+ * (歳出/docs/adr/0024、歳入/docs/adr/0028)。同じ表内に歳入(款/項)と歳出(款/項)の
+ * 両方が含まれ、構造が共通するため、見出し文字列と終端の合計行の文言だけを差し替えて
+ * 同じロジックで解析する。
  *
  * pdf-parseの既定のテキスト結合では表の列位置が失われるため、
  * 表決態度PDFの解析(docs/adr/0017, voteStanceParsing.ts)と同様に
  * X/Y座標付きのテキスト抽出(extractPositionedPdfText)を前提とする。
  *
  * 表の構造(実データで確認済み):
- *   - 「　歳　出」という見出し(全角スペース区切り)が歳出表の開始位置。
+ *   - 「　歳　出」「　歳　入」という見出し(全角スペース区切り)がそれぞれの表の開始位置。
  *   - 見出し直後に「款/項/金額」(当初予算)または「款/項/補正前の額/補正額/計」(補正予算)
  *     というヘッダー行がある。
  *   - 各行は先頭に款(1〜2桁)または項(1〜2桁)の番号があり、款のX座標は項より小さい
@@ -18,7 +20,14 @@ import { clusterByX, nearestCluster } from "../shared/xClustering.js";
  *     「316,158,00」+「3」で「316,158,003」)。同じ行内でX座標が近い片同士を連結する。
  *   - 補正予算は金額列が3つ(補正前の額/補正額/計)あるが、款ごとの最新の金額を知りたい
  *     ので一番右の「計」列(補正後の金額)を採用する。
- *   - 表の最終行は「歳出」+「合計」という総計行(款ではない)。この行で表の終わりとみなす。
+ *   - 表の最終行は「歳出合計」「歳入合計」という総計行(款ではない)。この行で表の終わりとみなす。
+ *
+ * 隠れた前提(docs/adr/0028): 見出し以降のアイテムは終端側を区切らずに返す
+ * (itemsAfterHeading)。歳出表は文書内最後の表のため無害だが、歳入表を解析する際は
+ * 見出し以降の残りに後続の歳出表も含まれる。現状は(a)findHeaderRowが文書順で最初の
+ * ヘッダー行を返すこと、(b)同一議案内の歳入表・歳出表が常に同じ列数であることの2点で
+ * 正しく動作している。歳入・歳出で列数が食い違う議案が現れた場合は破綻しうるため、
+ * 回帰テスト(歳入結果に歳出カテゴリ名が混入しないこと)で検知する。
  */
 
 export interface PositionedTextItem {
@@ -28,13 +37,13 @@ export interface PositionedTextItem {
   page: number;
 }
 
-export interface ExpenditureSubItem {
+export interface BudgetSubItem {
   name: string;
   /** 円単位(原本は千円単位のため1000倍して保持する) */
   amountYen: number;
 }
 
-export interface ExpenditureCategory {
+export interface BudgetCategory {
   /** 款番号(例: "1") */
   categoryNumber: string;
   /** 款名(例: "総務費") */
@@ -42,7 +51,7 @@ export interface ExpenditureCategory {
   /** 円単位(原本は千円単位のため1000倍して保持する) */
   amountYen: number;
   /** 項単位の内訳(原本の表記そのまま。捏造しない) */
-  subItems: ExpenditureSubItem[];
+  subItems: BudgetSubItem[];
 }
 
 const LEADING_NUMBER_PATTERN = /^\d{1,2}$/;
@@ -87,15 +96,15 @@ function groupIntoRows(items: PositionedTextItem[]): Row[] {
 }
 
 /**
- * 歳出表の開始位置(「　歳　出」見出し)より後ろの項目のみを、文書順(ページ→Y降順)で返す。
+ * 表の開始位置(見出し)より後ろの項目のみを、文書順(ページ→Y降順)で返す。
  * 見出しが見つからない場合はnull(表なし。捏造しない)。
  */
-function itemsAfterExpenditureHeading(items: PositionedTextItem[]): PositionedTextItem[] | null {
+function itemsAfterHeading(items: PositionedTextItem[], headingText: string): PositionedTextItem[] | null {
   // 見出しの空白の入り方には揺れがある(実データ: 「　歳　出」(先頭にも空白)と
-  // 「歳　出」(先頭なし)の両方を確認)。地の文中の詰まった「歳出」と区別するため、
-  // 空白除去後に「歳出」と一致し、かつ元の文字列に空白を含むものを見出しとみなす。
+  // 「歳　出」(先頭なし)の両方を確認)。地の文中の詰まった見出しと区別するため、
+  // 空白除去後に見出し文言と一致し、かつ元の文字列に空白を含むものを見出しとみなす。
   const heading = items.find(
-    (item) => stripAllWhitespace(item.str) === "歳出" && item.str !== "歳出",
+    (item) => stripAllWhitespace(item.str) === headingText && item.str !== headingText,
   );
   if (!heading) {
     return null;
@@ -195,19 +204,23 @@ function parseAmountYen(items: PositionedTextItem[]): number | null {
   return Number(digitsText) * 1000;
 }
 
-export function parseExpenditureBudgetTable(items: PositionedTextItem[]): ExpenditureCategory[] {
-  const tableItems = itemsAfterExpenditureHeading(items);
+function parseBudgetTable(
+  items: PositionedTextItem[],
+  headingText: string,
+  totalRowPrefix: string,
+): BudgetCategory[] {
+  const tableItems = itemsAfterHeading(items, headingText);
   if (!tableItems) {
     return [];
   }
 
   const allRows = groupIntoRows(tableItems);
 
-  // 総計行(「歳　　　出」+「合　　　計」)を境界として、それより後ろ(第２表以降の
-  // 別表)は歳出の款とは無関係なので取り込まない。総計行の先頭項目は数字ではない
-  // (「歳」)ため、後段の款・項フィルタでは検出できず、別途探す必要がある。
+  // 総計行(「歳出合計」「歳入合計」)を境界として、それより後ろ(もう一方の表や
+  // 第２表以降の別表)は対象の款とは無関係なので取り込まない。総計行の先頭項目は
+  // 数字ではないため、後段の款・項フィルタでは検出できず、別途探す必要がある。
   const totalRowIndex = allRows.findIndex((row) =>
-    stripAllWhitespace(row.items.map((item) => item.str).join("")).startsWith("歳出合計"),
+    stripAllWhitespace(row.items.map((item) => item.str).join("")).startsWith(totalRowPrefix),
   );
   const rows = totalRowIndex === -1 ? allRows : allRows.slice(0, totalRowIndex);
 
@@ -231,8 +244,8 @@ export function parseExpenditureBudgetTable(items: PositionedTextItem[]): Expend
   const headerRow = findHeaderRow(allRows);
   const rightColumnThreshold = findRightmostColumnThreshold(headerRow, columnCount);
 
-  const categories: ExpenditureCategory[] = [];
-  let current: ExpenditureCategory | null = null;
+  const categories: BudgetCategory[] = [];
+  let current: BudgetCategory | null = null;
 
   for (const { row, leadingNumber } of candidateRows) {
     const isCategoryLevel = nearestCluster(row.items[0]!.x, leadingClusters) === categoryLevelX;
@@ -254,4 +267,12 @@ export function parseExpenditureBudgetTable(items: PositionedTextItem[]): Expend
   }
 
   return categories;
+}
+
+export function parseExpenditureBudgetTable(items: PositionedTextItem[]): BudgetCategory[] {
+  return parseBudgetTable(items, "歳出", "歳出合計");
+}
+
+export function parseRevenueBudgetTable(items: PositionedTextItem[]): BudgetCategory[] {
+  return parseBudgetTable(items, "歳入", "歳入合計");
 }

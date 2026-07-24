@@ -1,6 +1,16 @@
-import type { Budget as PrismaBudget, PrismaClient } from "@prisma/client";
-import type { Budget } from "@saitama-council-watch/shared-types";
+import type { Budget as PrismaBudget, BudgetType as PrismaBudgetType, PrismaClient } from "@prisma/client";
+import type { Budget, BudgetType } from "@saitama-council-watch/shared-types";
 import type { BudgetRepository, UpsertBudgetInput } from "../../../../domain/budget/BudgetRepository.js";
+
+const PRISMA_TO_SHARED_BUDGET_TYPE: Record<PrismaBudgetType, BudgetType> = {
+  EXPENDITURE: "expenditure",
+  REVENUE: "revenue",
+};
+
+const SHARED_TO_PRISMA_BUDGET_TYPE: Record<BudgetType, PrismaBudgetType> = {
+  expenditure: "EXPENDITURE",
+  revenue: "REVENUE",
+};
 
 function toDomain(row: PrismaBudget): Budget {
   return {
@@ -8,6 +18,7 @@ function toDomain(row: PrismaBudget): Budget {
     fiscalYear: row.fiscalYear,
     accountName: row.accountName,
     category: row.category,
+    budgetType: PRISMA_TO_SHARED_BUDGET_TYPE[row.budgetType],
     amount: Number(row.amount),
     relatedBillId: row.relatedBillId,
     description: row.description,
@@ -19,18 +30,21 @@ export class PrismaBudgetRepository implements BudgetRepository {
 
   async upsertMany(inputs: UpsertBudgetInput[]): Promise<void> {
     for (const input of inputs) {
+      const budgetType = SHARED_TO_PRISMA_BUDGET_TYPE[input.budgetType];
       await this.client.budget.upsert({
         where: {
-          fiscalYear_accountName_category: {
+          fiscalYear_accountName_category_budgetType: {
             fiscalYear: input.fiscalYear,
             accountName: input.accountName,
             category: input.category,
+            budgetType,
           },
         },
         create: {
           fiscalYear: input.fiscalYear,
           accountName: input.accountName,
           category: input.category,
+          budgetType,
           categoryOrder: input.categoryOrder,
           amount: input.amountYen,
           relatedBillId: input.relatedBillId,
@@ -49,7 +63,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   async findByFiscalYear(fiscalYear: number): Promise<Budget[]> {
     const rows = await this.client.budget.findMany({
       where: { fiscalYear },
-      orderBy: [{ accountName: "asc" }, { categoryOrder: "asc" }],
+      orderBy: [{ accountName: "asc" }, { budgetType: "asc" }, { categoryOrder: "asc" }],
     });
     return rows.map(toDomain);
   }
