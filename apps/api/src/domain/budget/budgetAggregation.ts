@@ -1,4 +1,4 @@
-import type { ExpenditureCategory } from "./expenditureBudgetTableParsing.js";
+import type { BudgetCategory } from "./budgetTableParsing.js";
 
 /**
  * 会計年度・会計(一般会計/各特別会計)ごとに、当初予算を基準として補正予算を
@@ -17,7 +17,7 @@ export interface BudgetBillInput {
   amendmentNumber: number | null;
   /** 順序判定の補助(号数が同じ・ない場合のタイブレークに使う) */
   submittedDate: string | null;
-  categories: ExpenditureCategory[];
+  categories: BudgetCategory[];
 }
 
 export interface AggregatedBudgetCategory {
@@ -47,13 +47,13 @@ function compareBills(a: BudgetBillInput, b: BudgetBillInput): number {
   return dateA.localeCompare(dateB);
 }
 
-function formatDescription(category: ExpenditureCategory): string {
+function formatDescription(category: BudgetCategory): string {
   return category.subItems
     .map((item) => `${item.name} ${Math.round(item.amountYen / 1000).toLocaleString("ja-JP")}千円`)
     .join("、");
 }
 
-export function aggregateExpenditureBudget(bills: BudgetBillInput[]): AggregatedBudgetCategory[] {
+export function aggregateBudget(bills: BudgetBillInput[]): AggregatedBudgetCategory[] {
   const groups = new Map<string, BudgetBillInput[]>();
   for (const bill of bills) {
     const key = `${bill.fiscalYear} ${bill.accountName}`;

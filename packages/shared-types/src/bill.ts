@@ -124,12 +124,17 @@ export const VoteWithLegislatorSchema = z.object({
 });
 export type VoteWithLegislator = z.infer<typeof VoteWithLegislatorSchema>;
 
+export const BudgetTypeSchema = z.enum(["expenditure", "revenue"]);
+export type BudgetType = z.infer<typeof BudgetTypeSchema>;
+
 export const BudgetSchema = z.object({
   id: z.string().uuid(),
   fiscalYear: z.number().int(),
   /** 一般会計/各特別会計の別(docs/adr/0024) */
   accountName: z.string().min(1),
   category: z.string().min(1),
+  /** 歳出(支出)/歳入(収入)の別(docs/adr/0028) */
+  budgetType: BudgetTypeSchema,
   amount: z.number().nonnegative(),
   relatedBillId: z.string().uuid().nullable(),
   description: z.string(),

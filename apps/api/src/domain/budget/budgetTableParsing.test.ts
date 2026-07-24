@@ -3,8 +3,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   parseExpenditureBudgetTable,
+  parseRevenueBudgetTable,
   type PositionedTextItem,
-} from "./expenditureBudgetTableParsing.js";
+} from "./budgetTableParsing.js";
 
 const fixtureDir = fileURLToPath(new URL("./__fixtures__/", import.meta.url));
 
@@ -104,5 +105,70 @@ describe("parseExpenditureBudgetTable", () => {
 
     const total = categories.reduce((sum, c) => sum + c.amountYen, 0);
     expect(total).toBe(106_314_000_000);
+  });
+});
+
+describe("parseRevenueBudgetTable", () => {
+  it("当初予算: 歳入25款すべてを、歳出合計と一致する金額で抽出する(歳入歳出は均衡する)", () => {
+    const categories = parseRevenueBudgetTable(initialBudgetItems);
+    expect(categories).toHaveLength(25);
+
+    const byNumber = new Map(categories.map((c) => [c.categoryNumber, c]));
+    expect(byNumber.get("1")).toMatchObject({ categoryName: "市税", amountYen: 316_158_003_000 });
+    expect(byNumber.get("25")).toMatchObject({ categoryName: "市債", amountYen: 53_628_300_000 });
+
+    const total = categories.reduce((sum, c) => sum + c.amountYen, 0);
+    expect(total).toBe(716_000_000_000);
+  });
+
+  it("当初予算(国保): 歳入7款すべてを抽出する", () => {
+    const categories = parseRevenueBudgetTable(kokuhoInitialBudgetItems);
+    expect(categories).toHaveLength(7);
+
+    const total = categories.reduce((sum, c) => sum + c.amountYen, 0);
+    expect(total).toBe(106_314_000_000);
+  });
+
+  it("補正予算: 歳出側とは独立に、変更のあった款のみを抽出する(款の変更内容は歳出・歳入で一致するとは限らない)", () => {
+    const categories = parseRevenueBudgetTable(amendmentBudgetItems);
+    expect(categories).toHaveLength(4);
+
+    const byNumber = new Map(categories.map((c) => [c.categoryNumber, c]));
+    expect(byNumber.get("18")).toMatchObject({ categoryName: "国庫支出金", amountYen: 149_169_780_000 });
+    expect(byNumber.get("19")).toMatchObject({ categoryName: "県支出金", amountYen: 41_866_039_000 });
+    expect(byNumber.get("22")).toMatchObject({ categoryName: "繰入金", amountYen: 28_974_288_000 });
+    expect(byNumber.get("25")).toMatchObject({ categoryName: "市債", amountYen: 54_084_700_000 });
+  });
+
+  it("款が3つしかない補正予算でも、金額列の境界をヘッダー行の位置から正しく求める", () => {
+    const categories = parseRevenueBudgetTable(amendment2BudgetItems);
+    expect(categories).toHaveLength(3);
+
+    const byNumber = new Map(categories.map((c) => [c.categoryNumber, c]));
+    expect(byNumber.get("18")).toMatchObject({ categoryName: "国庫支出金", amountYen: 149_483_779_000 });
+    expect(byNumber.get("19")).toMatchObject({ categoryName: "県支出金", amountYen: 41_866_475_000 });
+    expect(byNumber.get("22")).toMatchObject({ categoryName: "繰入金", amountYen: 28_974_548_000 });
+  });
+
+  it("見出しが見つからない場合は空配列を返す(捏造しない)", () => {
+    const items: PositionedTextItem[] = [{ str: "無関係", x: 0, y: 0, page: 1 }];
+    expect(parseRevenueBudgetTable(items)).toEqual([]);
+  });
+
+  it("歳入の解析結果に歳出のカテゴリ名が混入しない(見出し以降を無制限にスキャンする実装の回帰テスト。docs/adr/0028)", () => {
+    const revenueCategories = parseRevenueBudgetTable(initialBudgetItems);
+    const expenditureCategories = parseExpenditureBudgetTable(initialBudgetItems);
+    expect(revenueCategories).toHaveLength(25);
+    expect(expenditureCategories).toHaveLength(13);
+
+    const expenditureNames = new Set(expenditureCategories.map((c) => c.categoryName));
+    for (const category of revenueCategories) {
+      expect(expenditureNames.has(category.categoryName)).toBe(false);
+    }
+
+    const revenueNames = new Set(revenueCategories.map((c) => c.categoryName));
+    for (const category of expenditureCategories) {
+      expect(revenueNames.has(category.categoryName)).toBe(false);
+    }
   });
 });

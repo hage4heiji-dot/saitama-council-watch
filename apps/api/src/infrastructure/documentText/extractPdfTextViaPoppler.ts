@@ -14,7 +14,7 @@ const execFileAsync = promisify(execFile);
  *
  * `-layout`オプションで元の表の列位置をできる限り空白で再現させる。単純な
  * 改行結合(pdf-parseの既定動作)では列がバラバラの順序で出てしまう表形式PDFのため、
- * 列位置を保った出力が前提となる(expenditureBudgetTableParsing.tsが
+ * 列位置を保った出力が前提となる(budgetTableParsing.tsが
  * X/Y座標のクラスタリングで解決しているのと同じ問題への、pdftotext版の対処)。
  */
 export async function extractPdfTextViaPoppler(buffer: Buffer): Promise<string> {
