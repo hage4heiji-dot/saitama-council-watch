@@ -1,3 +1,4 @@
+import { matchCouncilTermLegislator } from "../../domain/councilTerm/councilTermLegislatorMatching.js";
 import type { CouncilTermRepository, UpsertCouncilTermInput } from "../../domain/councilTerm/CouncilTermRepository.js";
 import { buildCouncilTermCandidates, parseElectionResultDocument } from "../../domain/councilTerm/electionResultTableParsing.js";
 import type { DocumentRepository } from "../../domain/document/DocumentRepository.js";
@@ -27,10 +28,6 @@ export interface IngestCouncilTermsResult {
   electionsProcessed: number;
   termsUpserted: number;
   documentsCreated: number;
-}
-
-function stripWhitespace(value: string): string {
-  return value.replace(/[\s　]/g, "");
 }
 
 /**
@@ -73,9 +70,7 @@ export async function ingestCouncilTerms(
     for (const wardResult of wardResults) {
       const candidates = buildCouncilTermCandidates(wardResult, election.electionDate, election.electionKind);
       for (const candidate of candidates) {
-        const legislatorId =
-          legislators.find((legislator) => stripWhitespace(legislator.name) === stripWhitespace(candidate.candidateRawName))
-            ?.id ?? null;
+        const legislatorId = matchCouncilTermLegislator(candidate.candidateRawName, legislators);
         inputs.push({ ...candidate, legislatorId, sourceDocumentId: documentId });
       }
     }
