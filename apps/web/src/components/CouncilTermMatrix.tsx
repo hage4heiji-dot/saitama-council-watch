@@ -1,20 +1,26 @@
-import type { CouncilTerm } from "@saitama-council-watch/shared-types";
+import Link from "next/link";
+import type { CouncilTerm, Legislator } from "@saitama-council-watch/shared-types";
 import type { PersonRow } from "@/lib/councilTermMatrix";
 
 /**
  * 議員任期履歴のマトリクス(横軸:年、縦軸:人物、docs/adr/0027)。
  * ADR-0023§3の方針(専用チャートコンポーネントを作らず質素なスタイルに合わせる)を踏襲し、
  * チャートライブラリは使わずCSS Gridのみで組む。区ごとに独立したグリッド要素になるが、
- * 列幅を固定px(名前列168px・年列32px)にすることで、見出し行と各区のグリッドの列位置を
+ * 列幅を固定px(名前列200px・年列32px)にすることで、見出し行と各区のグリッドの列位置を
  * 一致させている(fr単位だと各グリッドが独立に列幅を計算してしまい、区ごとにずれるため)。
+ *
+ * legislatorsByIdは現職議員のみを含む(fetchLegislators()のデフォルトがisActive=trueのみ返す
+ * ため)。legislatorIdが一致した行だけ現職マーク+会派を出す(docs/adr/0027の「捏造しない」方針
+ * のとおり、legislatorIdは取り込み時に確信を持って一致できた場合のみ設定されている)。
  */
 interface CouncilTermMatrixProps {
   rowsByWard: Map<string, PersonRow[]>;
   minYear: number;
   maxYear: number;
+  legislatorsById: Map<string, Legislator>;
 }
 
-const NAME_COLUMN_WIDTH = 168;
+const NAME_COLUMN_WIDTH = 200;
 const YEAR_COLUMN_WIDTH = 32;
 
 function yearOf(isoDate: string): number {
@@ -46,7 +52,7 @@ function TermBar({ term, minYear, maxYear }: { term: CouncilTerm; minYear: numbe
   );
 }
 
-export function CouncilTermMatrix({ rowsByWard, minYear, maxYear }: CouncilTermMatrixProps) {
+export function CouncilTermMatrix({ rowsByWard, minYear, maxYear, legislatorsById }: CouncilTermMatrixProps) {
   const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
   const columns = gridTemplateColumns(years.length);
 
@@ -74,19 +80,41 @@ export function CouncilTermMatrix({ rowsByWard, minYear, maxYear }: CouncilTermM
                 {ward}({rows.length}名)
               </summary>
               <div className="grid" style={{ gridTemplateColumns: columns }}>
-                {rows.map((row) => (
-                  <div key={row.key} className="contents">
-                    <div
-                      style={{ gridColumn: 1 }}
-                      className="sticky left-0 z-10 truncate border-t border-r border-hairline bg-surface-page p-1.5 text-sm text-ink-primary"
-                    >
-                      {row.displayName}
+                {rows.map((row) => {
+                  const legislator = row.legislatorId ? legislatorsById.get(row.legislatorId) : undefined;
+                  return (
+                    <div key={row.key} className="contents">
+                      <div
+                        style={{ gridColumn: 1 }}
+                        className="sticky left-0 z-10 flex items-center gap-1.5 overflow-hidden border-t border-r border-hairline bg-surface-page p-1.5 text-sm text-ink-primary"
+                      >
+                        {legislator ? (
+                          <Link
+                            href={`/legislators/${legislator.id}`}
+                            className="flex min-w-0 items-center gap-1.5 hover:underline"
+                          >
+                            <span
+                              className="h-1.5 w-1.5 shrink-0 rounded-full bg-series-1"
+                              aria-hidden="true"
+                              title="現職"
+                            />
+                            <span className="truncate">{row.displayName}</span>
+                          </Link>
+                        ) : (
+                          <span className="truncate">{row.displayName}</span>
+                        )}
+                        {legislator?.currentFaction && (
+                          <span className="shrink-0 truncate rounded-full border border-hairline bg-surface-1 px-1.5 py-0.5 text-[10px] text-ink-secondary">
+                            {legislator.currentFaction.name}
+                          </span>
+                        )}
+                      </div>
+                      {row.terms.map((term) => (
+                        <TermBar key={term.id} term={term} minYear={minYear} maxYear={maxYear} />
+                      ))}
                     </div>
-                    {row.terms.map((term) => (
-                      <TermBar key={term.id} term={term} minYear={minYear} maxYear={maxYear} />
-                    ))}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </details>
           ))}
@@ -100,6 +128,10 @@ export function CouncilTermMatrix({ rowsByWard, minYear, maxYear }: CouncilTermM
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-4 rounded-full bg-series-1/50" aria-hidden="true" />
           繰上当選による任期
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-series-1" aria-hidden="true" />
+          現職(会派とリンク先を表示)
         </span>
       </div>
     </div>
