@@ -1,11 +1,12 @@
-import { fetchCouncilTerms } from "@/lib/apiClient";
+import { fetchCouncilTerms, fetchLegislators } from "@/lib/apiClient";
 import { groupCouncilTermsByPerson } from "@/lib/councilTermMatrix";
 import { CouncilTermMatrix } from "@/components/CouncilTermMatrix";
 
 export const metadata = { title: "議員任期履歴 | さいたま市議会ウォッチ" };
 
 export default async function CouncilTermHistoryPage() {
-  const { items } = await fetchCouncilTerms();
+  const [{ items }, { items: legislators }] = await Promise.all([fetchCouncilTerms(), fetchLegislators()]);
+  const legislatorsById = new Map(legislators.map((legislator) => [legislator.id, legislator]));
 
   if (items.length === 0) {
     return (
@@ -37,7 +38,12 @@ export default async function CouncilTermHistoryPage() {
         区ごとに任期の期間で表示しています。氏名は選挙当時の公式表記(ひらがな/漢字)のままで、
         現職議員と自動的に一致しない場合があります。出典: さいたま市議会公式サイト「過去の選挙結果」。
       </p>
-      <CouncilTermMatrix rowsByWard={sortedWards} minYear={minYear} maxYear={maxYear} />
+      <CouncilTermMatrix
+        rowsByWard={sortedWards}
+        minYear={minYear}
+        maxYear={maxYear}
+        legislatorsById={legislatorsById}
+      />
     </main>
   );
 }
