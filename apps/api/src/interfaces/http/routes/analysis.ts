@@ -1,6 +1,7 @@
 import { LegislatorTagMatrixQuerySchema } from "@saitama-council-watch/shared-types";
 import { Router } from "express";
 import { buildSourceDocumentTagsMap } from "../../../domain/aiContent/billTags.js";
+import { buildFactionDissentRanking } from "../../../domain/vote/factionDissentRanking.js";
 import { buildFactionTagMatrix } from "../../../domain/vote/factionTagMatrix.js";
 import { buildLegislatorTagMatrix } from "../../../domain/vote/legislatorTagMatrix.js";
 import { prisma } from "../../../infrastructure/db/postgres/prismaClient.js";
@@ -44,6 +45,20 @@ analysisRouter.get("/cross-tab/faction-tags", async (req, res, next) => {
     const tagsBySourceDocumentId = buildSourceDocumentTagsMap(tagContents);
     const matrix = buildFactionTagMatrix(votes, tagsBySourceDocumentId, query.status, query.meetingId);
     res.json(matrix);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 会派別反対率ランキング(docs/adr/0029)。各会派の議員が投じたfor/against票のうち、
+ * againstの割合を会派ごとに算出し、反対率の降順で返す。
+ */
+analysisRouter.get("/faction-dissent-ranking", async (_req, res, next) => {
+  try {
+    const votes = await voteRepository.findAllWithBillInfo();
+    const rows = buildFactionDissentRanking(votes);
+    res.json({ rows });
   } catch (error) {
     next(error);
   }

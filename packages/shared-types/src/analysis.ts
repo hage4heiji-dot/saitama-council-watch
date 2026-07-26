@@ -51,3 +51,22 @@ export const FactionTagMatrixSchema = z.object({
   rows: z.array(FactionTagMatrixRowSchema),
 });
 export type FactionTagMatrix = z.infer<typeof FactionTagMatrixSchema>;
+
+/**
+ * 会派別反対率ランキング向け。会派に所属する議員が投じたfor/against票のうち、
+ * againstの割合(dissentRate、0〜1)を会派ごとに算出したもの。abstain/absentは
+ * 賛否の意思表示ではないため母数から除外する。無所属・会派不明はまとめて
+ * 「無所属」行にする。反対率の降順で返す。
+ */
+export const FactionDissentRowSchema = z.object({
+  factionName: z.string(),
+  forCount: z.number().int().nonnegative(),
+  againstCount: z.number().int().nonnegative(),
+  dissentRate: z.number().min(0).max(1),
+});
+export type FactionDissentRow = z.infer<typeof FactionDissentRowSchema>;
+
+export const FactionDissentRankingSchema = z.object({
+  rows: z.array(FactionDissentRowSchema),
+});
+export type FactionDissentRanking = z.infer<typeof FactionDissentRankingSchema>;

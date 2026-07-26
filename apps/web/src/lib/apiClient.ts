@@ -7,6 +7,7 @@ import type {
   Budget,
   CommitteeMeeting,
   CouncilTerm,
+  FactionDissentRanking,
   FactionTagMatrix,
   LegislatorDetail,
   LegislatorTagMatrix,
@@ -163,6 +164,10 @@ export function fetchFactionTagMatrix(status?: BillStatus, meetingId?: string): 
     tags: [],
     rows: [],
   }));
+}
+
+export function fetchFactionDissentRanking(): Promise<FactionDissentRanking> {
+  return apiFetch<FactionDissentRanking>("/faction-dissent-ranking").catch(() => ({ rows: [] }));
 }
 
 export type { Bill, BillWithSource, Legislator, Meeting };

@@ -72,6 +72,9 @@ export default async function AnalysisPage({ searchParams }: AnalysisPageProps) 
       <h1 className="mb-1 text-xl font-bold">議員×タグ クロス集計</h1>
       <p className="mb-6 text-sm text-ink-muted">
         議員がタグの付いた議案にどう投票したか(賛成/反対の件数)を集計します。承認済みのAIタグと投票記録の両方がある議案のみが対象です。タグの見出しから、そのタグ(・会期)の議案一覧に移動できます。
+        <Link href="/analysis/faction-dissent" className="ml-1 text-ink-secondary hover:underline">
+          会派別の反対率ランキングを見る
+        </Link>
       </p>
 
       <div className="mb-3 flex flex-wrap gap-2 text-sm">
