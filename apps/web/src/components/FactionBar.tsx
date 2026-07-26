@@ -1,19 +1,11 @@
+import { SERIES_COLORS } from "@/lib/seriesColors";
+
 /**
  * 会派別議席構成(部分ー全体、dataviz skill: part-to-whole → stacked bar)。
  * 色は会派名の固定順で割り当てる(ランクではなく実体に紐づける。
  * 議席数が変わっても同じ会派は常に同じ色になる)。
  * 7会派は「4以上は直接ラベル必須」のラダーに該当するため、凡例に名前と件数を必ず併記する。
  */
-const SERIES_COLORS = [
-  "var(--series-1)",
-  "var(--series-2)",
-  "var(--series-3)",
-  "var(--series-4)",
-  "var(--series-5)",
-  "var(--series-6)",
-  "var(--series-7)",
-  "var(--series-8)",
-];
 
 export interface FactionSeat {
   name: string;

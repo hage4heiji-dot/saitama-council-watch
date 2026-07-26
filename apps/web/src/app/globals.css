@@ -6,6 +6,12 @@
  * デザイントークン(dataviz skillの検証済み参照パレットをそのまま採用)。
  * カテゴリカル色は固定の割当順を厳守し、フィルタ等で再割当てしない。
  * ステータス色(good/warning/serious/critical)はカテゴリカル色と別系統。
+ *
+ * series-1〜8の並び順は色そのものと同じくらい重要(隣接ペアのCVD safety機構)。
+ * 以前はオレンジがslot 8にずれており、本来隣接しない想定のマゼンタ(元slot 7)と
+ * 隣り合ってしまいnormal-vision floor(ΔE 15)を割っていた(scripts/validate_palette.js
+ * で検出)。参照パレット(dataviz skill references/palette.md)どおりの順に戻した
+ * (色の16進値はどれも変更なし、並び順のみの修正)。
  */
 :root {
   --surface-page: #f9f9f7;
@@ -18,13 +24,13 @@
   --baseline: #c3c2b7;
 
   --series-1: #2a78d6; /* blue */
-  --series-2: #1baf7a; /* aqua */
-  --series-3: #eda100; /* yellow */
-  --series-4: #008300; /* green */
-  --series-5: #4a3aa7; /* violet */
-  --series-6: #e34948; /* red */
-  --series-7: #e87ba4; /* magenta */
-  --series-8: #eb6834; /* orange */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua */
+  --series-4: #eda100; /* yellow */
+  --series-5: #e87ba4; /* magenta */
+  --series-6: #008300; /* green */
+  --series-7: #4a3aa7; /* violet */
+  --series-8: #e34948; /* red */
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -48,13 +54,13 @@
     --baseline: #383835;
 
     --series-1: #3987e5;
-    --series-2: #199e70;
-    --series-3: #c98500;
-    --series-4: #008300;
-    --series-5: #9085e9;
-    --series-6: #e66767;
-    --series-7: #d55181;
-    --series-8: #d95926;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
 
     --status-good: #0ca30c;
     --status-warning: #fab219;

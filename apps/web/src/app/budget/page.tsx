@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BudgetCompositionBar } from "@/components/BudgetCompositionBar";
 import { fetchBudgetFiscalYears, fetchBudgets } from "@/lib/apiClient";
 
 export const metadata = { title: "予算(歳出・歳入内訳) | さいたま市議会ウォッチ" };
@@ -152,25 +153,34 @@ async function BudgetByYear({
       {categories.length === 0 ? (
         <p className="text-ink-muted">この年度・会計の予算データがまだありません。</p>
       ) : (
-        <ul className="space-y-4">
-          {categories.map((c) => (
-            <li key={c.id}>
-              <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
-                <span className="font-medium text-ink-primary">{c.category}</span>
-                <span className="text-ink-secondary" title={`${c.amount.toLocaleString("ja-JP")}円`}>
-                  {formatOku(c.amount)}
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-surface-1">
-                <div
-                  className="h-2 rounded-full bg-sequential-450"
-                  style={{ width: `${Math.max((c.amount / maxAmount) * 100, 1)}%` }}
-                />
-              </div>
-              {c.description && <p className="mt-1 text-xs text-ink-muted">{c.description}</p>}
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold text-ink-secondary">構成比</h2>
+            <BudgetCompositionBar
+              categories={categories}
+              label={`${fiscalYear}年度${account}${budgetType === "revenue" ? "歳入" : "歳出"}`}
+            />
+          </div>
+          <ul className="space-y-4">
+            {categories.map((c) => (
+              <li key={c.id}>
+                <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+                  <span className="font-medium text-ink-primary">{c.category}</span>
+                  <span className="text-ink-secondary" title={`${c.amount.toLocaleString("ja-JP")}円`}>
+                    {formatOku(c.amount)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-1">
+                  <div
+                    className="h-2 rounded-full bg-sequential-450"
+                    style={{ width: `${Math.max((c.amount / maxAmount) * 100, 1)}%` }}
+                  />
+                </div>
+                {c.description && <p className="mt-1 text-xs text-ink-muted">{c.description}</p>}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </>
   );
