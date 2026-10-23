@@ -16,6 +16,7 @@ import type {
   PetitionWithSource,
   SearchResponse,
   TagCount,
+  TopicStats,
   VoteWithLegislator,
 } from "@saitama-council-watch/shared-types";
 
@@ -107,6 +108,11 @@ export function fetchBills(
 export function fetchTagCounts(meetingId?: string): Promise<{ items: TagCount[] }> {
   const qs = meetingId ? `?meetingId=${encodeURIComponent(meetingId)}` : "";
   return apiFetch<{ items: TagCount[] }>(`/tags${qs}`).catch(() => ({ items: [] }));
+}
+
+/** 統計ページ(議題トピック分析、docs/adr/0029)向け */
+export function fetchTopicStats(): Promise<TopicStats> {
+  return apiFetch<TopicStats>("/stats/topics");
 }
 
 export function searchBills(
