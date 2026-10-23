@@ -25,17 +25,32 @@ function resolvePublicOrigin(request: Request): string {
 export async function POST(request: Request): Promise<NextResponse> {
   const formData = await request.formData();
   const token = String(formData.get("token") ?? "");
-  const id = String(formData.get("id") ?? "");
+  // 個別承認は1件、一括承認は画面に表示していた件数ぶん`id`が送られてくる。
+  // 一括承認でもサーバー側で「現在の未承認すべて」を取り直さず、画面表示時点のIDだけを
+  // 承認する(表示後に追加された未確認コンテンツが人手確認なしに公開されるのを防ぐ。docs/adr/0007)。
+  const ids = formData.getAll("id").map(String).filter((id) => id !== "");
   const verifiedBy = String(formData.get("verifiedBy") ?? "");
   const origin = resolvePublicOrigin(request);
 
-  try {
-    await verifyAiContent(token, id, verifiedBy);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "承認に失敗しました";
+  const failures: string[] = [];
+  if (ids.length === 0) {
+    failures.push("承認対象がありません");
+  }
+  for (const id of ids) {
+    try {
+      await verifyAiContent(token, id, verifiedBy);
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : "承認に失敗しました");
+    }
+  }
+
+  if (failures.length > 0) {
     const url = new URL("/admin/review", origin);
     url.searchParams.set("token", token);
-    url.searchParams.set("verifyError", message);
+    url.searchParams.set(
+      "verifyError",
+      ids.length > 1 ? `${ids.length}件中${failures.length}件: ${failures[0]}` : (failures[0] ?? ""),
+    );
     return NextResponse.redirect(url);
   }
 
