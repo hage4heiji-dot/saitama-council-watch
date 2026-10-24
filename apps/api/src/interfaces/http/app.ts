@@ -14,6 +14,7 @@ import { meetingsRouter } from "./routes/meetings.js";
 import { ordinancesRouter } from "./routes/ordinances.js";
 import { petitionsRouter } from "./routes/petitions.js";
 import { searchRouter } from "./routes/search.js";
+import { statsRouter } from "./routes/stats.js";
 import { tagsRouter } from "./routes/tags.js";
 
 /**
@@ -41,6 +42,7 @@ export function createApp(): Express {
   v1Router.use(searchRouter);
   v1Router.use(tagsRouter);
   v1Router.use(analysisRouter);
+  v1Router.use(statsRouter);
   app.use("/api/v1", v1Router);
 
   app.use(adminAiContentsRouter);

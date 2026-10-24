@@ -39,6 +39,7 @@ echo "==> smoke test against ${BASE_URL}"
 
 check "/"
 check "/legislators"
+check "/stats"
 check "/meetings"
 check "/search?q=%E8%AD%B0%E6%A1%88"
 
